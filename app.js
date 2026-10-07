@@ -443,10 +443,21 @@ function focusAccessibleNote(i) {
     (visible || candidates.at(-1))?.focus({ preventScroll: true });
   });
 }
-function selectNote(i, shouldFocus = false) {
+function selectNote(i, shouldFocus = false, focusTarget = null) {
   selected = i;
   render();
   if (shouldFocus) focusAccessibleNote(i);
+  // 连续录歌词时，焦点要落到**输入框**而不是谱面上的音符按钮 —— 用户填完一个词，
+  // 手指还在键盘上，正要敲下一个。
+  //
+  // 必须等一帧：render() 会把无障碍音符列表整块重建（innerHTML = …），那个输入框
+  // 会被从文档里摘掉、焦点随之丢失。此刻同步调 focus() 落在一个已离线的节点上，
+  // 等于没调。等 DOM 换完再落，并把框里已有的词全选（接着敲就是替换，不用先删空）。
+  if (focusTarget)
+    requestAnimationFrame(() => {
+      focusTarget.focus();
+      if (typeof focusTarget.select === "function") focusTarget.select();
+    });
   requestAnimationFrame(revealSelectionEditor);
 }
 function repairTies() {
@@ -1011,6 +1022,47 @@ function wire() {
       checkpoint();
       commitHistory();
     }
+  });
+  // 回车 / 下方向键：存好这一条，跳到下一个音符的歌词框等着。
+  //
+  // 为什么必须有：一个字一个音地填歌词，靠鼠标或 Tab 挪位置，几十个音就是几十次
+  // 「鼠标 → 输入 → 鼠标」。填歌词的动作是**线性的**——手上的顺序就是谱面的顺序——
+  // 那就该让键盘一路走到底。
+  //
+  // 为什么用「重选音符」而不是只 focus：填歌词时要看的是「我现在填到哪个音了」，
+  // 选中态（谱面高亮 + 右侧「第 N 个音」+ 音高时值）正好回答这个问题。同时
+  // selectNote 会走 render()，于是这一条的歌词也一并落到谱面上，不必另写刷新。
+  //
+  // 为什么不用 control 键：填歌词会连着按几十次，多按一个键就是几十次浪费。
+  // 输入框里没有别的用途要独占回车，独占它不会跟谁打架。
+  //
+  // ★ 换焦点**不能**在这里直接 $("editLyric").focus()：render() 是同步的，里面
+  // `accessList.innerHTML = …` 会把输入框连同焦点一起从文档里摘掉，紧接着的 focus()
+  // 落在一个已经离线的节点上，等于没调。所以焦点交给 selectNote 里的
+  // requestAnimationFrame —— 等 DOM 换完再落。
+  $("editLyric").addEventListener("keydown", (e) => {
+    // 中文输入法组字期间的回车是「确认候选词」，不是「去下一个」。放它过去，
+    // 否则用户刚敲完一个拼音按回车，焦点会跑掉、这个词也丢在半路。
+    if (e.isComposing || e.keyCode === 229) return;
+    const forward = e.key === "Enter" || e.key === "ArrowDown";
+    const backward = e.key === "ArrowUp"; // 填错了要能回头改，不然又要去摸鼠标
+    if (!forward && !backward) return;
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    const next = selected + (forward ? 1 : -1);
+    // 到头了（最后一个音再按回车，或第一个音再按上）就让浏览器照常处理：
+    // Enter 什么都不做，ArrowUp 回到框首，用户看得出来自己已经到头了。
+    if (!score.events[next]) return;
+    e.preventDefault();
+    // 先把这一条存下来。input 已经把 ev.lyric 写进去了，这里补历史检查点 ——
+    // 否则「填完一屏歌词、按一次撤销」的效果是整屏一起回退，中间那些步没了。
+    if (lyricBefore !== e.target.value) {
+      checkpoint();
+      commitHistory();
+    }
+    lyricBefore = score.events[next].lyric || "";
+    // 传给 selectNote 的是「让输入框重新拿到焦点」，选中后全选不了（框里的值要等
+    // syncInspector 写完才有），所以全选放在后面的 rAF 里，跟 focus 一个时机。
+    selectNote(next, false, $("editLyric"));
   });
   document.querySelectorAll(".degree-pad button").forEach((b) =>
     b.addEventListener("click", () => {

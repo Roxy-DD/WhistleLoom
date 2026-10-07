@@ -210,7 +210,16 @@
     transfer.items.add(new File(["X:1\nT:走输入框\nC:测试\nM:4/4\nL:1/8\nK:G\nG2 A B2 c|"], "走输入框.abc", { type: "text/plain" }));
     input.files = transfer.files;
     input.dispatchEvent(new Event("change", { bubbles: true }));
-    await new Promise((done) => setTimeout(done, 400));
+    // ★ 等「条件成立」而不是猜一个毫秒数。文件读进来是异步的（FileReader），
+    // 慢机器上 400ms 未必够，定长等待会让这一步偶发失败，而它一旦失败，
+    // 后面依赖「当前曲谱是那一份」的几步会跟着一起红 —— 一个根因、三处报错，
+    // 查起来像是三个 bug。轮询到标题真变了再往下走，快机器上也不会白等。
+    const deadline = Date.now() + 5000;
+    while (
+      document.getElementById("title").value !== "走输入框" &&
+      Date.now() < deadline
+    )
+      await new Promise((r) => setTimeout(r, 50));
     const title = document.getElementById("title").value;
     if (title !== "走输入框") throw new Error("文件选择框这条路的标题没载入：" + title);
     if (document.getElementById("ioDialog").open) throw new Error("导入完成后「导入 / 导出」面板没有自动关掉");
@@ -532,6 +541,88 @@
     applyScoreToForm();
     if (!panel.hidden) throw new Error("还原后提示条还挂着：" + noticeText());
     return "默认不误报；C 调谱抓出 2 个音并标红；移到 D 调后自动收起";
+  });
+
+  await step("lyric-enter-advance", async () => {
+    try {
+      // 填歌词是线性动作，回车该顺着谱面往下走。这条要真验的是**焦点真的落到了输入框**——
+      // 光看 selected 变了没意义：render() 会把无障碍音符列表整块重建，同步调的 focus()
+      // 落在一个已离线的节点上，selected 照样前进，用户却打不进第二个字。
+      const field = () => document.getElementById("editLyric");
+      // ★ 等一个真实的短定时器，**不要**用 requestAnimationFrame：Chrome headless 配
+      // --virtual-time-budget 时，页面一旦「静默」（没有可见动画）rAF 可能再也不触发，
+      // await 它等于把整条探针挂死在半路 —— 症状是「结果区根本没出现」而不是某一用例
+      // 失败，极难定位（这次就这么卡了两轮）。也不要用 0ms：setTimeout(0) 只让出一个
+      // 宏任务，headless 下 selectNote 里那个 rAF(focus) 未必来得及跑完。
+      const frame = () => new Promise((r) => setTimeout(r, 60));
+      const key = (name) =>
+        field().dispatchEvent(
+          new KeyboardEvent("keydown", { key: name, bubbles: true, cancelable: true }),
+        );
+
+      loadSample("scale");
+      // 音符在谱面上是 SVG 的 <g>，没有 HTMLElement.click()，得派发真的鼠标事件。
+      document
+        .querySelector('#scoreView [data-index="0"]')
+        .dispatchEvent(new MouseEvent("click", { bubbles: true }));
+      await frame();
+      if (field().value !== "") throw new Error("示例曲第一个音不该有歌词");
+      // 鼠标点音符**不该**抢焦点到输入框：那是「无障碍导航模式」，焦点要留在音符上
+      // 好让人接着用方向键一个个走。只有回车/上下键跳转才需要焦点进输入框。
+      // 这两条不能混：混了以后点一下音符就被拽进输入框，键盘导航直接废掉。
+      if (field() === document.activeElement)
+        throw new Error("鼠标点音符不该把焦点抢进歌词框");
+
+      const total = score.events.length;
+      field().focus();
+      field().value = "甲";
+      field().dispatchEvent(new Event("input", { bubbles: true }));
+      key("Enter");
+      await frame();
+      if (selected !== 1) throw new Error(`回车后停在第 ${selected + 1} 个音，该是第 2 个`);
+      if (score.events[0].lyric !== "甲") throw new Error("回车把刚填的词弄丢了");
+      if (field() !== document.activeElement)
+        throw new Error("回车后焦点没跟着走——用户还得再点一次输入框");
+      if (field().value !== "") throw new Error("下一个音本来是空的，框里却有内容");
+
+      // 上方向键回头改：填错一个词不该让人去摸鼠标。
+      key("ArrowUp");
+      await frame();
+      if (selected !== 0) throw new Error("上方向键没回到上一个音");
+      if (field().value !== "甲")
+        throw new Error("回到上一个音后框里不是它的歌词：" + field().value);
+      if (field() !== document.activeElement) throw new Error("上方向键后焦点没落在输入框");
+
+      // 组合输入期间的回车是「确认候选词」，绝不能当成「去下一个」——
+      // 否则中文用户刚敲完拼音按回车，焦点跑掉、词也丢在半路。
+      field().dispatchEvent(
+        new KeyboardEvent("keydown", {
+          key: "Enter",
+          bubbles: true,
+          cancelable: true,
+          isComposing: true,
+        }),
+      );
+      await frame();
+      if (selected !== 0) throw new Error("输入法组字期间的回车被当成跳转了");
+
+      // 走到最后一个音再按回车：不该越界，也不该静默回到第一个。
+      selected = total - 1;
+      render();
+      await frame();
+      key("Enter");
+      await frame();
+      if (selected !== total - 1)
+        throw new Error(`在最后一个音按回车跑到了第 ${selected + 1} 个`);
+
+      applyScoreToForm();
+      return `回车 / ↓ 前进、↑ 回头，焦点始终在框里；组字期间与曲末都放行（共 ${total} 个音）`;
+    } finally {
+      // 无论成败都把曲谱放回一份确定的默认值：这一步动过选中态和歌词，
+      // 留着会让后面每一步看到不一样的起点（而且失败时更看不出是哪一步弄脏的）。
+      score = parseAbc("X:1\nT:探针\nM:4/4\nL:1/4\nQ:1/4=96\nK:D\nd e f g a b a g\n");
+      applyScoreToForm();
+    }
   });
 
   await step("message-cleanup", () => {
