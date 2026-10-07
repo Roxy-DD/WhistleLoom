@@ -1564,12 +1564,11 @@ button {
 .octave-dots.low {
   top: 22px;
 }
+/* 增时线。一条横线占独立一格（见 .event-extension），不再压缩字距挤进数字格。 */
 .duration-extension {
   display: inline-block;
-  margin-left: 3px;
-  font-size: 0.78em;
-  letter-spacing: -2px;
-  vertical-align: 0.08em;
+  font-size: 0.82em;
+  vertical-align: 0.05em;
 }
 .duration-dot {
   display: inline-block;

@@ -37,12 +37,13 @@
 .octave-dots.low {
   top: 22px;
 }
+/* 增时线的那一条横线。它由 .event-extension 提供独立的一格（和数字格等宽），
+   所以这里不需要再压缩字距 —— 早先用 letter-spacing: -2px 把整串横线挤进数字
+   那一格里，正是长音看起来「糊成一坨、还占不满地方」的原因。 */
 .duration-extension {
   display: inline-block;
-  margin-left: 3px;
-  font-size: 0.78em;
-  letter-spacing: -2px;
-  vertical-align: 0.08em;
+  font-size: 0.82em;
+  vertical-align: 0.05em;
 }
 .duration-dot {
   display: inline-block;

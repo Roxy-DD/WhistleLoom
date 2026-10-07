@@ -9,14 +9,16 @@ function notationPitchLabel(midi) {
 }
 function noteSvg(
   entry,
-  index,
+  slot,
   noteStartX = 29,
   accState = {},
   beamed = false,
   cell = NOTE_CELL,
 ) {
   const { e } = entry,
-    x = noteStartX + index * cell,
+    // slot 是**格号**而不是音符序号：长音自己就占好几格，后面那个音的起点得
+    // 让开它占的地方，五线谱的符头才会落在简谱数字正上方那一列。
+    x = noteStartX + slot * cell,
     y = e.pitch == null ? 41 : noteY(e.pitch),
     label = tr("第 {index} 个音符，{pitch}，时值 {duration} 拍", {
       index: entry.i + 1,
@@ -246,12 +248,40 @@ function underlineCount(duration) {
     ? Math.max(1, Math.ceil(Math.log2(1 / duration) - 0.000001))
     : 0;
 }
-function beamSvg(groups, noteStartX, cell = NOTE_CELL) {
+// 一个音符与它的增时线。简谱的长音写成「数字 + 若干条横线」，每条横线延长一拍。
+// 增时线不是画在数字旁边的小尾巴 —— 它在谱面上占**独立一格**，和数字同宽，
+// 所以这里的 marks 要同时供两处使用：
+//   ① 决定这个音符在横向网格里占几格（durationSlots）；
+//   ② 决定简谱要吐出几条横线。
+// 两边各算一遍就会各错一遍（八拍写了七条线、网格却只让一格），所以只留这一个源头。
+function durationExtension(e) {
+  const duration = Number(e.duration || 1),
+    dotted = [0.375, 0.75, 1.5, 3, 6].some(
+      (d) => Math.abs(duration - d) < 0.001,
+    ),
+    // 附点全音符记作「全音符 + 附点」，不再继续叠加增时线。
+    beats = dotted ? duration / 1.5 : duration;
+  return {
+    dotted,
+    marks: beats >= 4 ? Math.floor(beats) - 1 : beats >= 2 ? 1 : 0,
+  };
+}
+// 这个音符在横向网格里占几格：数字自己一格，增时线每条一格。
+// 二分音符 2 格、全音符 4 格、倍全音符 8 格；附点不额外占格（附点是贴在数字
+// 右下的小点，通行简谱里它从不单独占位）。
+function durationSlots(e) {
+  return 1 + durationExtension(e).marks;
+}
+function beamSvg(groups, noteStartX, cell = NOTE_CELL, slotOf = null) {
   return groups.map((group) => {
     const ys = group.map(({ entry }) => noteY(entry.e.pitch));
     const stemDown = ys.reduce((sum, y) => sum + y, 0) / ys.length < 40;
     const points = group.map(({ localIndex }, index) => {
-      const x = noteStartX + localIndex * cell + (stemDown ? -6 : 6);
+      // 符杠的起止要落在音符**占的格子**上，不是音符序号上 —— 两者只有在
+      // 全是单格音符时才相等。同组里的音符时值都 < 1，本来就各占一格，
+      // 但 slotOf 让这条规则不依赖那个巧合。
+      const slot = slotOf ? slotOf[localIndex] : localIndex,
+        x = noteStartX + slot * cell + (stemDown ? -6 : 6);
       const y = noteY(group[index].entry.e.pitch) + (stemDown ? 27 : -27);
       return { x, y };
     });
@@ -402,6 +432,11 @@ function rowWidth(entryCounts, cell, systemStart) {
     Math.max(0, entryCounts.length - 1) * 16
   );
 }
+// 一个小节占几格。折行预算、撑满计算、实际渲染三处都得用格数而不是音符个数，
+// 否则「四个音的全音符小节」会被按四个音算宽、实际却要八个格才画得下增时线。
+function barSlots(bar) {
+  return bar.reduce((sum, entry) => sum + durationSlots(entry.e), 0);
+}
 // 把一行的音符步长撑开，让行宽正好铺满内容宽度（制谱的「横向撑满」）。
 // 撑开幅度限制在 MAX_CELL_STRETCH 以内：撑太狠会把节奏分组读乱。
 function stretchedCell(entryCounts, contentWidth, systemStart) {
@@ -431,17 +466,17 @@ function systemRows(bars, contentWidth, options = {}) {
     used = 0;
   const flush = () => {
     if (!row.length) return;
-    const counts = row.map(({ bar }) => bar.length),
+    const counts = row.map(({ bar }) => barSlots(bar)),
       cell = stretch ? stretchedCell(counts, contentWidth, true) : NOTE_CELL;
     rows.push({ items: row, cell, width: rowWidth(counts, cell, true) });
     row = [];
     used = 0;
   };
   bars.forEach((bar, index) => {
-    const baseW = measureWidth(bar.length, NOTE_CELL, row.length === 0);
+    const baseW = measureWidth(barSlots(bar), NOTE_CELL, row.length === 0);
     if (row.length && used + 16 + baseW > contentWidth) flush();
     // 每行的第一个小节额外容纳谱头，否则首小节会被谱头挤出可视宽度。
-    const placed = measureWidth(bar.length, NOTE_CELL, row.length === 0);
+    const placed = measureWidth(barSlots(bar), NOTE_CELL, row.length === 0);
     row.push({ bar, index });
     used += (row.length > 1 ? 16 : 0) + placed;
   });
@@ -489,13 +524,22 @@ function renderMeasure(
   staffLayout = null,
   cell = NOTE_CELL,
 ) {
+  // 先把每个音符落在第几格算出来。长音自己占好几格（数字 1 格 + 增时线每条 1 格），
+  // 后面的音符必须让开这一段 —— 否则二分音符之后的那个音会跑到「数字正下方」，
+  // 而它的增时线正压在那里。总格数同时决定小节宽度。
+  const slotOf = [];
+  let totalSlots = 0;
+  for (const entry of entries) {
+    slotOf.push(totalSlots);
+    totalSlots += durationSlots(entry.e);
+  }
   const sig = keySignature(),
     keyCount = Math.abs(sig.count),
     // 谱头排布依制谱惯例：谱号 → 调号 → 拍号 依次紧排，谱头与第一个音符之间
     // 留一段适度空隙（MuseScore 的 Clef/key signature to first note ≈ 1.3 个行距）。
     noteStartX = systemStart ? 29 + staffHeaderWidth() : 29,
     accState = {},
-    width = measureWidth(entries.length, cell, systemStart),
+    width = measureWidth(totalSlots, cell, systemStart),
     beams = beamGroups(entries),
     beamedNotes = new Map(beams.flatMap((group) => {
       const stemDown = group.reduce((sum, item) => sum + noteY(item.entry.e.pitch), 0) / group.length < 40;
@@ -503,9 +547,9 @@ function renderMeasure(
     })),
     noteMarkup = entries
       .map((entry, i) =>
-        noteSvg(entry, i, noteStartX, accState, beamedNotes.get(i) || false, cell),
+        noteSvg(entry, slotOf[i], noteStartX, accState, beamedNotes.get(i) || false, cell),
       )
-      .join("") + beamSvg(beams, noteStartX, cell),
+      .join("") + beamSvg(beams, noteStartX, cell, slotOf),
     layout = staffLayout || staffLayoutForSystem([{ bar: entries }]),
     topOffset = layout.topOffset,
     height = layout.height;
@@ -617,22 +661,33 @@ function renderMeasure(
     for (let level = 1; level <= underlineCount(e.duration); level++)
       if (!covered.has(i + ":" + level)) addRun(i, 0, level);
   });
+  // 四层共用同一串**等宽格子**：一个音符占几格就吐几个 .event-cell。
+  // 第 1 格是数字 / 歌词 / 指法本身，后面 (格数 − 1) 格是增时线的位置。
+  //
+  // 为什么不是「一个超宽容器里摆一条数字 + 几条横线」：那样每层都得自己算
+  // 横线的落点，四层迟早对不齐；拆成等宽格子之后，对齐是布局的自然结果。
+  // 延长格仍带 data-index（点它也能选中那个音），但 aria-hidden —— 屏幕阅读器
+  // 已从数字格知道时值，不必把同一条信息念八遍，也不该多占 7 个 Tab 位。
+  const cellClass = (i) =>
+    "event-cell " +
+    (i === selected ? "active " : "") +
+    (i === playingIndex ? "playing" : "");
+  const extensionCells = (count, i) =>
+    Array.from(
+      { length: count },
+      () =>
+        '<span class="' +
+        cellClass(i) +
+        ' event-extension" data-index="' +
+        i +
+        '" aria-hidden="true"></span>',
+    ).join("");
   let cells = entries
     .map(({ e, i }) => {
       // 简谱的休止符记作「0」（通行记谱法），不用中文「休」。
       const n = e.pitch == null ? "0" : solfege(e.pitch),
-        dotted = [0.375, 0.75, 1.5, 3, 6].some(
-          (d) => Math.abs(e.duration - d) < 0.001,
-        ),
-        // 附点全音符记作「全音符 + 附点」，不再继续叠加增时线。
-        beats = dotted ? e.duration / 1.5 : e.duration,
-        longMarks = beats >= 4 ? Math.floor(beats) - 1 : beats >= 2 ? 1 : 0,
-        inlineMarks =
-          (longMarks
-            ? '<span class="duration-extension">' +
-              "—".repeat(longMarks) +
-              "</span>"
-            : "") + (dotted ? '<i class="duration-dot"></i>' : ""),
+        { dotted, marks: longMarks } = durationExtension(e),
+        // 减时线仍然画在数字那一格里 —— 短音符从不带增时线，两者不会同时出现。
         marks = (underlineRuns.get(i) || [])
           .map(
             (run) =>
@@ -646,9 +701,8 @@ function renderMeasure(
           )
           .join("");
       return (
-        '<span class="event-cell ' +
-        (i === selected ? "active " : "") +
-        (i === playingIndex ? "playing" : "") +
+        '<span class="' +
+        cellClass(i) +
         '" data-index="' +
         i +
         '" ' +
@@ -656,19 +710,29 @@ function renderMeasure(
         '>' +
         '<span class="number-value">' +
         n +
-        inlineMarks +
+        (dotted ? '<i class="duration-dot"></i>' : "") +
         "</span>" +
         marks +
-        "</span>"
+        "</span>" +
+        // 增时线：每条横线各占一格，和数字一样宽。
+        Array.from(
+          { length: longMarks },
+          () =>
+            '<span class="' +
+            cellClass(i) +
+            ' event-extension" data-index="' +
+            i +
+            '" aria-hidden="true"><span class="duration-extension">—</span></span>',
+        ).join("")
       );
     })
     .join("");
   let lyrics = entries
-    .map(
-      ({ e, i }) =>
-        '<span class="event-cell ' +
-        (i === selected ? "active " : "") +
-        (i === playingIndex ? "playing" : "") +
+    .map(({ e, i }) => {
+      const span = durationSlots(e) - 1;
+      return (
+        '<span class="' +
+        cellClass(i) +
         '" data-index="' +
         i +
         '" ' +
@@ -676,23 +740,27 @@ function renderMeasure(
         '>' +
         '<span class="lyric-value">' +
         escapeHtml(e.lyric || "") +
-        "</span></span>",
-    )
+        "</span></span>" +
+        extensionCells(span, i)
+      );
+    })
     .join("");
   let holes = entries
-    .map(
-      ({ e, i }) =>
-        '<span class="event-cell ' +
-        (i === selected ? "active " : "") +
-        (i === playingIndex ? "playing" : "") +
+    .map(({ e, i }) => {
+      const span = durationSlots(e) - 1;
+      return (
+        '<span class="' +
+        cellClass(i) +
         '" data-index="' +
         i +
         '" ' +
         eventCellAccess(e, i) +
         '>' +
         holeSvg(e.pitch) +
-        "</span>",
-    )
+        "</span>" +
+        extensionCells(span, i)
+      );
+    })
     .join("");
   // 五线谱、简谱、歌词、指法四层必须落在同一横坐标上。五线谱的第一个音符
   // 中心固定在 noteStartX，单元格宽度为 cell、内容居中于 cell/2，所以各层的
