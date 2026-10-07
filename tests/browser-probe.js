@@ -41,6 +41,7 @@
       "generateMidi", "parseMidiFile", "generateAbc", "parseAbc", "ScoreExport",
       "lastImportWarnings", "currentScore", "updateExportLayersMessage", "showImportNotice",
       "LAYER_TOGGLES", "sanitizeTies", "fitMelodyOctaves", "nearestScoreDuration",
+      "updatePlayabilityNotice",
     ];
     const missing = names.filter((n) => has(n) === "undefined");
     if (missing.length) throw new Error("缺 " + missing.join(","));
@@ -496,6 +497,41 @@
       if (i18nLang() !== "zh") pick("zh");
       localStorage.removeItem("whistleloom.lang");
     }
+  });
+
+  await step("playability-notice", () => {
+    // 「这支哨笛吹不出哪些音」这条提示必须跟得上谱面的当前状态：换哨笛调、移调、
+    // 改音符都要重算。做成一次性提示或增量维护都会在某一类入口上漏掉刷新。
+    const panel = document.getElementById("playabilityNotice");
+    const noticeText = () => document.getElementById("playabilityNoticeText").textContent;
+    const marks = () => document.querySelectorAll("#scoreView .fingering-issue").length;
+
+    // ① 默认曲谱是 D 调曲子配 D 调哨笛，一个音都不该报。
+    if (!panel.hidden) throw new Error("默认曲谱不该报吹不出来，但提示条是开着的：" + noticeText());
+
+    // ② 换成 C 调音阶配 D 调哨笛：低音 1（C）低于全按音，4（F）六孔拼不出来。
+    const backup = { tonic: score.tonic, events: score.events };
+    score.tonic = "C";
+    score.events = [60, 62, 64, 65, 67, 69, 71, 72].map((pitch) => ({ pitch, duration: 1 }));
+    render();
+    if (panel.hidden) throw new Error("C 调谱配 D 调哨笛，却一个音都没报");
+    if (!/吹不出 2 个音/.test(noticeText()))
+      throw new Error("提示条的计数不对：" + noticeText());
+    if (!/低音 1 个/.test(noticeText()) || !/无指法 1 个/.test(noticeText()))
+      throw new Error("提示条没有按原因分类：" + noticeText());
+    if (marks() !== 2) throw new Error(`谱面上该有 2 个红记号，实际 ${marks()} 个`);
+
+    // ③ 整曲移到 D 调：全部可吹，提示条和红记号都必须自己收起来。
+    transposeTo("D");
+    if (!panel.hidden) throw new Error("移到 D 调后提示条还挂着：" + noticeText());
+    if (marks()) throw new Error(`移到 D 调后谱面上还有 ${marks()} 个红记号`);
+
+    // ④ 还原现场，别把后面几步的谱面留在改动过的状态上。
+    score.tonic = backup.tonic;
+    score.events = backup.events;
+    applyScoreToForm();
+    if (!panel.hidden) throw new Error("还原后提示条还挂着：" + noticeText());
+    return "默认不误报；C 调谱抓出 2 个音并标红；移到 D 调后自动收起";
   });
 
   await step("message-cleanup", () => {

@@ -236,27 +236,48 @@ function diatonicPosition(midi) {
     oct = s.oct;
   return oct * 7 + letterIndex[s.letter];
 }
+// 这支六孔哨笛的可用音域上限，相对全按音算，单位是半音：两个八度。
+//
+// 为什么写死 24 而不是「octave > 1」：编辑器允许录到 86（D6），而 D 调哨笛的全按音
+// 是 62（D4），86 − 62 正好 24 —— 那正是这支笛子能吹的最高音，不该被判成越界。
+// 再往上要靠第三个八度超吹，本版本不认。
+const WHISTLE_MAX_SEMITONES = 24;
+// 指法表。第四项 issue 只在「这个音这支笛子出不来」时才有值：
+//   low          低于全按音。笛子就那么大，没有更低的孔可以放，物理上就是吹不出来。
+//   high         超出两个八度。
+//   noFingering  音高在音域里，但六孔全开全闭这套指法拼不出它（F 自然、G♯、B♭…），
+//                实际演奏要靠半孔或叉口指法，本版本没有收录。
+// 三者都让 valid 为 false；valid 为 true 时 issue 一定是 null。
 function fingering(midi) {
-  if (midi == null) return { closed: null, octave: 0, valid: true, rest: true };
+  if (midi == null)
+    return { closed: null, octave: 0, valid: true, rest: true, issue: null };
   const root = whistleMidi[resolveKey("whistleKey")] || 62;
   const semis = [0, 2, 4, 5, 7, 9, 11];
-  let diff = midi - root;
-  let octave = Math.floor(diff / 12);
-  let pc = ((diff % 12) + 12) % 12;
+  const diff = midi - root;
+  const octave = Math.floor(diff / 12);
+  const pc = ((diff % 12) + 12) % 12;
+  // 音域检查必须先于指法查表，否则「比全按还低」的音会被 pc 蒙对：C4 在 D 调哨笛上
+  // diff = −2、pc = 10，正好撞上下面 C 自然音的叉口指法分支，于是一张看着完全正常、
+  // 实际一吹就是哑的指法图被画了出来 —— 这比不显示更糟。
+  if (diff < 0) return { valid: false, issue: "low", octave, closed: null };
+  if (diff > WHISTLE_MAX_SEMITONES)
+    return { valid: false, issue: "high", octave, closed: null };
   let degree = semis.indexOf(pc);
   if (degree < 0) {
     if (pc === 10)
       return {
         valid: true,
+        issue: null,
         octave,
         closed: [false, false, false, true, true, true],
         cross: true,
       };
-    return { valid: false, octave, closed: null };
+    return { valid: false, issue: "noFingering", octave, closed: null };
   }
   let mask = [6, 5, 4, 3, 2, 1, 0][degree];
   return {
     valid: true,
+    issue: null,
     octave,
     closed: Array.from({ length: 6 }, (_, i) => i < mask),
   };
@@ -264,12 +285,28 @@ function fingering(midi) {
 function holeSvg(midi) {
   const f = fingering(midi);
   if (f.rest) return '<span class="rest-hole">—</span>';
-  if (!f.valid)
+  // 吹不出来的音：三种成因各给一个记号。整句说明挂在 title 与 aria-label 上 ——
+  // 一格只有几个字宽，塞不下「低于这支哨笛的最低音」这样的整句话。
+  // 记号用汉字而不是箭头：谱面是给吹笛子的人看的，看到「低」字比看到「↓」更快明白
+  // 是音高的问题，而不是「往下滑」之类的演奏指示。
+  if (f.issue) {
+    const why =
+      f.issue === "low"
+        ? tr("太低，低于这支哨笛的最低音")
+        : f.issue === "high"
+          ? tr("太高，超出这支哨笛的音域")
+          : tr("此音需要半孔或本版本尚无可靠指法");
+    const mark = f.issue === "noFingering" ? "?" : f.issue === "low" ? tr("低") : tr("高");
     return (
-      '<span class="chromatic-warning" title="' +
-      tr("此音需要半孔或本版本尚无可靠指法") +
-      '">?</span>'
+      '<span class="fingering-issue" role="img" aria-label="' +
+      escapeHtml(why) +
+      '" title="' +
+      escapeHtml(why) +
+      '">' +
+      escapeHtml(mark) +
+      "</span>"
     );
+  }
   let c = "";
   for (let i = 0; i < 6; i++) {
     const closed = f.closed[i];

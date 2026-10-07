@@ -456,6 +456,19 @@ const I18N_EN = {
   "{pitch} 指法": "{pitch} fingering",
   "{pitch} 指法，交叉指法": "{pitch} fingering, cross fingering",
   "此音需要半孔或本版本尚无可靠指法": "This note needs a half hole, or has no reliable fingering in this version",
+  // ── 吹不出来的音 ──────────────────────────────────────────────────────────
+  // 谱面上的记号只有一个字宽，中英各选自己最短的说法：中文用「低」「高」，
+  // 英文那两个词塞不进直径 18px 的圆，改用最直观的箭头。
+  低: "↓",
+  高: "↑",
+  "太低，低于这支哨笛的最低音": "Too low — below this whistle's lowest note",
+  "太高，超出这支哨笛的音域": "Too high — above this whistle's range",
+  "这支哨笛吹不出 {count} 个音（{list}），已在谱面上标红。试试换一支哨笛，或用「整体移调」把这个调换掉。":
+    "{count} notes cannot be played on this whistle ({list}); they are marked in red on the score. Try another whistle key, or transpose the whole score.",
+  "低音 {n} 个": "{n} below range",
+  "高音 {n} 个": "{n} above range",
+  "无指法 {n} 个": "{n} without fingering",
+  "、": ", ",
   "第 {index} 小节五线谱": "Staff for measure {index}",
   "第 {index} 个音符，{pitch}，时值 {duration} 拍": "Note {index}, {pitch}, {duration} beats",
   "，歌词 ": ", lyric ",

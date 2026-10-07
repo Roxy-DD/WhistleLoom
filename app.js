@@ -306,6 +306,7 @@ function render() {
   applyLayerVisibility(view);
   updateExportLayersMessage();
   renderConnections(view);
+  updatePlayabilityNotice();
   const accessList = $("accessibleScoreList");
   accessList.innerHTML = score.events
     .map((event, index) => {
@@ -692,6 +693,51 @@ function showImportNotice(label, { always = false } = {}) {
     : "";
   if (!detail && !always) return hideNotice();
   showNotice(detail ? `${label}${detail}` : label);
+}
+// 谱面上方的第二条提示：这支哨笛吹不出来的音有几个、都是什么原因。
+//
+// 为什么不和导入提示共用一条：两者性质不同。导入提示说的是「这次导入把哪些记法改掉了」，
+// 是**一次动作的回执**，关掉就不再需要；这一条是谱面**当前状态**的写照 —— 只要谱子里
+// 还有吹不出来的音，它就该一直挂着，直到换哨笛调、移调或改掉那些音才消失。
+// 两种东西塞进同一条会互相顶掉，用户就分不清自己看的是哪一件事。
+//
+// 每次 render 都重算：它必须跟着哨笛调、跟着每一个音的增删改走。做成「事件驱动」的
+// 增量维护会漏掉路径（改哨笛调、撤销、导入、音高编辑各走各的入口），迟早有一处忘记刷新。
+function updatePlayabilityNotice() {
+  const panel = $("playabilityNotice");
+  const text = $("playabilityNoticeText");
+  if (!panel || !text) return;
+  const counts = { low: 0, high: 0, noFingering: 0 };
+  // 判定要用**这份曲谱的**哨笛调，不能靠界面上那个下拉框 —— 导出、打印渲染的可能
+  // 不是当前正在编辑的那一份。渲染上下文是 render() 的通用约定，这里跟着用。
+  setRenderKeys(score);
+  try {
+    for (const event of score.events) {
+      if (event.pitch == null) continue;
+      const issue = fingering(event.pitch).issue;
+      if (issue) counts[issue] += 1;
+    }
+  } finally {
+    setRenderKeys(null);
+  }
+  const total = counts.low + counts.high + counts.noFingering;
+  if (!total) {
+    panel.hidden = true;
+    text.textContent = "";
+    return;
+  }
+  // 分类计数按原因拼成「低音 2 个、无指法 1 个」。顿号也走 tr()：中英标点不同，
+  // 写死中文顿号在英文界面里会很扎眼。
+  const parts = [];
+  if (counts.low) parts.push(tr("低音 {n} 个", { n: counts.low }));
+  if (counts.high) parts.push(tr("高音 {n} 个", { n: counts.high }));
+  if (counts.noFingering) parts.push(tr("无指法 {n} 个", { n: counts.noFingering }));
+  // 整句交给 tr()，包括那对括号：英文里括号前后要留空格，拼在 JS 里就调不动了。
+  text.textContent = tr(
+    "这支哨笛吹不出 {count} 个音（{list}），已在谱面上标红。试试换一支哨笛，或用「整体移调」把这个调换掉。",
+    { count: total, list: parts.join(tr("、")) },
+  );
+  panel.hidden = false;
 }
 function loadSample(key) {
   let src = sampleAbc[key];

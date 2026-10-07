@@ -205,6 +205,15 @@ button {
   background: #f1eade;
   color: #6b6252;
 }
+/* 谱面上方的第二条提示：这支哨笛吹不出来的音。它描摹的是谱面的**当前状态**，
+   不是某一次动作的回执，所以刻意不给关闭按钮 —— 音的问题解决了它才会消失。
+   留一个关闭按钮反而会让人误以为「关掉就等于没这回事」。 */
+.score-notice-alert {
+  border-color: #eddcd9;
+  border-left-color: var(--red);
+  background: #fdf6f5;
+  color: #6d4a45;
+}
 .eyebrow {
   text-transform: uppercase;
   font: 500 10px var(--mono);
@@ -1075,9 +1084,20 @@ button {
 .holes-layer.hidden {
   display: none;
 }
-.chromatic-warning {
-  font: 9px var(--mono);
-  color: #b9574d;
+/* 吹不出来的音：谱面上占一个圆形记号，红底红字。
+   用 inline-grid 而不是 grid —— 它长在 .event-cell 这行内流里，变成块级会把整行撑开。
+   记号本身只有一两个字（低/高/?），整句成因挂在 title 上，鼠标停上去才展开。 */
+.fingering-issue {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #f7e2df;
+  color: var(--red);
+  font: 500 11px var(--sans);
+  line-height: 1;
+  cursor: help;
 }
 .footer span:last-child {
   max-width: 60%;
