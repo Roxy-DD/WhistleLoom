@@ -7,6 +7,8 @@
 - 在线版：<https://roxy-dd.github.io/WhistleLoom/>
 - 许可：代码 AGPL-3.0，内置曲库 ODbL 1.0，详见[许可与数据来源](#许可与数据来源)
 
+![WhistleLoom 界面：同一份曲谱渲染出的五线谱、简谱、歌词与六孔指法四层，右侧为编辑面板](assets/screenshot.png)
+
 ## 运行
 
 在线版直接访问上面的地址。
@@ -141,6 +143,7 @@ node scripts/check-i18n.mjs
 | `scripts/browser-probe.sh` | 真浏览器回归：自起静态服务器并运行 `tests/browser-probe.js` |
 | `scores/` | 可由「导入」载入的示例 JSON 工程 |
 | `css/` | 主题组件、工作区、记谱、打印与可逆导出样式 |
+| `assets/` | README 引用的界面截图 |
 | `.agents/skills/music-to-whistle-score/` | 可选的 AI 转谱 skill，编辑器不依赖它 |
 | `tests/` | Node 内置测试 |
 
