@@ -1,0 +1,905 @@
+{
+  "schemaVersion": 1,
+  "title": "The Sally Gardens",
+  "subtitle": "爱尔兰传统曲（叶芝《Down by the Salley Gardens》所用曲调）· 数据来自 thesession.org（ODbL 1.0）",
+  "composer": "爱尔兰传统曲",
+  "lyricist": "（器乐曲，无词）",
+  "arranger": "WhistleLoom 据 thesession.org 曲库编配",
+  "sourceTonic": "",
+  "tonic": "G",
+  "mode": "major",
+  "meter": "4/4",
+  "whistleKey": "D",
+  "tempo": 90,
+  "originalTempo": 90,
+  "events": [
+    {
+      "pitch": 67,
+      "duration": 1,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 67,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 69,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 69,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 67,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": true,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 76,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 69,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": true,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 1,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 76,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 78,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 76,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": true,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 69,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 67,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 64,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 62,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 64,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": true,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 67,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 66,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 67,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 69,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 69,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 67,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": true,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 1,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 76,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 69,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": true,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 1,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 76,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 78,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 76,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": true,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 69,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 67,
+      "duration": 2,
+      "lyric": "",
+      "barAfter": true,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 78,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 1,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 76,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": true,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 1,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 83,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 81,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 76,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": true,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 76,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 81,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 81,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 81,
+      "duration": 1,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 76,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": true,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 81,
+      "duration": 1,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 83,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 81,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 76,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": true,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 78,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 1,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 76,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": true,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 1,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 83,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 81,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 76,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": true,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 1,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 76,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 78,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 79,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 76,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": true,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 74,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 69,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 71,
+      "duration": 0.5,
+      "lyric": "",
+      "barAfter": false,
+      "tieToNext": false,
+      "slurToNext": false
+    },
+    {
+      "pitch": 67,
+      "duration": 2,
+      "lyric": "",
+      "barAfter": true,
+      "tieToNext": false,
+      "slurToNext": false
+    }
+  ]
+}

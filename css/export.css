@@ -1,0 +1,205 @@
+.export-dialog {
+  width: min(440px, calc(100vw - 32px));
+  padding: 28px;
+  border: 1px solid #e5e5dc;
+  border-radius: 16px;
+  color: var(--ink);
+  background: var(--paper);
+  box-shadow: 0 24px 80px #17201935;
+}
+.export-dialog::backdrop { background: #17201966; backdrop-filter: blur(2px); }
+.export-dialog h2 { margin: 7px 0 8px; font: 600 22px var(--serif); }
+.export-dialog p, .export-dialog small { color: var(--muted); line-height: 1.7; }
+.export-dialog small { display: block; margin-top: 18px; font-size: 11px; }
+.export-options { display: grid; gap: 9px; margin-top: 20px; }
+.export-options button { min-height: 42px; }
+.export-dialog-close {
+  float: right; border: 0; background: transparent; color: var(--muted);
+  font-size: 23px; line-height: 1; cursor: pointer;
+}
+#exportLayersMessage { margin-top: 0; color: var(--green-dark); }
+.score-info-editor {
+  margin-top: 12px;
+  border-top: 1px solid var(--line, #e7e6dd);
+  padding-top: 10px;
+}
+.score-info-editor summary {
+  color: var(--green-dark, #416b55);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.score-info-editor .field-grid { margin-top: 12px; }
+.score-info-editor .field-wide { grid-column: 1 / -1; }
+.paper-subtitle,
+.paper-credits { margin-top: 4px; color: var(--muted); font-size: 11px; }
+.paper-subtitle:empty { display: none; }
+.paper-credits[hidden] { display: none; }
+.export-paper {
+  box-sizing: border-box;
+  width: 1120px !important;
+  margin: 0 auto !important;
+  padding: 28px 58px !important;
+}
+.export-paper .export-heading {
+  display: block;
+  text-align: center;
+  margin: 0 0 14px;
+  padding: 0 0 12px;
+  border-bottom: 1px solid #d9ddd5;
+}
+.export-heading-title { margin: 0; color: #202720; font: 700 30px/1.25 var(--serif); }
+.export-heading-subtitle { margin-top: 4px; font: 15px/1.4 var(--serif); color: #525d53; }
+/* 调式信息（左）与署名（右）排在同一行的两端，外缘正好压在版心左右边缘上，
+   和下面谱面每一行的左右边缘对齐 —— 分成上下两行、各占一头会显得没对齐。 */
+.export-heading-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 18px;
+  margin-top: 9px;
+}
+.export-heading-meta { color: #3e5143; font: 12px/1.6 var(--sans); text-align: left; }
+.export-heading-credits { color: #657066; font: 11px/1.5 var(--serif); text-align: right; white-space: nowrap; }
+.export-heading-layers { margin-top: 3px; color: #8a9188; font: 9px/1.4 var(--sans); text-align: center; }
+.export-paper #scoreView { width: 100% !important; overflow: visible !important; }
+/* 谱行铺满整页宽度（制谱惯例：各行的左右边缘齐平）。原来看起来「整谱偏左」，
+   根因不在对齐方式，而在导出沿用了编辑器被侧栏挤窄的分行结果——每行只装得下
+   一个小节。现在导出会按纸张宽度重新折行，对齐只需要把行铺满。 */
+.export-paper .score-system {
+  box-sizing: border-box;
+  width: 100% !important;
+  justify-content: space-between;
+  /* 必须和 js/notation.js 里 rowWidth 的 16px 间距一致，否则算出来的行宽
+     和实际排出来的行宽对不上，撑满就会溢出或者差一截。 */
+  gap: 16px;
+  padding-left: 0;
+  padding-right: 0;
+}
+/* 末行撑不满时左对齐，别把寥寥几个小节扯得中间全是缝。 */
+.export-paper .score-system.ragged {
+  justify-content: flex-start;
+}
+/* 整曲只有一行、且撑不满时居中：左右都没有可对齐的对象。 */
+.export-paper .score-system.centered {
+  justify-content: center;
+}
+@media print {
+  .paper-heading { display: block !important; text-align: center !important; }
+  .paper-heading > div { width: 100%; }
+  .paper-meta { display: block; margin: 6px 0 0; }
+  .paper-subtitle, .paper-credits { text-align: center; }
+  .paper-title { font-size: 28px !important; }
+}
+#exportStatus { display: block; min-height: 1.4em; margin-top: 12px; color: var(--green-dark); font-size: 12px; }
+.export-options button:disabled { opacity: .6; cursor: progress; }
+@media print { .export-dialog { display: none !important; } }
+
+/* ── 导入 / 导出面板（#ioDialog）────────────────────────────────────────────
+   同一个 <dialog> 装两个页签：导入和导出。导入那张表要放「格式 · 后缀 · 说明」三列，
+   所以面板比单纯导出时宽一些。 */
+.io-dialog { width: min(620px, calc(100vw - 32px)); }
+.io-dialog p, .io-dialog small { margin: 0; }
+.io-tabs {
+  display: inline-flex;
+  gap: 2px;
+  margin: 14px 0 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #f1efe8;
+}
+.io-tabs button {
+  border: 0;
+  border-radius: 8px;
+  padding: 7px 18px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  transition: .16s;
+}
+.io-tabs button[aria-selected="true"] {
+  background: var(--paper);
+  color: var(--green-dark);
+  box-shadow: 0 1px 3px #303b2a1a;
+}
+.io-pane { padding-top: 14px; }
+.io-pane[hidden] { display: none; }
+.io-note { margin-top: 12px !important; font-size: 12px; }
+
+/* 拖放区。它同时也是「选择文件」按钮的容器 —— 两条路放在一处，用户不用先分辨
+   自己是「想拖」还是「想点」。 */
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 24px 16px;
+  border: 1.5px dashed #c3cdc0;
+  border-radius: 13px;
+  background: #f8f7f2;
+  text-align: center;
+  transition: .18s;
+}
+.drop-zone b { font-size: 15px; color: var(--ink); }
+.drop-zone small { color: var(--muted); font-size: 12px; }
+.drop-zone .file-btn { margin-top: 8px; }
+
+/* 整页拖放高亮：文件拖到页面任意位置都能导入，但要给一句「放到哪里」的提示，
+   否则用户拖到谱面上会不确定有没有生效。这一层盖在整页之上，所以拖放中的反馈
+   只需要这一处 —— 面板里的拖放区不必再单独加高亮。 */
+body.is-dropping::after {
+  content: "松手即导入曲谱文件";
+  position: fixed;
+  inset: 14px;
+  display: grid;
+  place-items: center;
+  z-index: 80;
+  border: 2px dashed var(--green);
+  border-radius: 18px;
+  background: #f6f3edcc;
+  color: var(--green-dark);
+  font: 600 18px var(--sans);
+  backdrop-filter: blur(1px);
+  pointer-events: none;
+}
+
+.format-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.format-table caption {
+  text-align: left;
+  padding-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.format-table th, .format-table td {
+  padding: 7px 10px 7px 0;
+  border-top: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+  font-size: 12px;
+}
+.format-table th { width: 96px; color: var(--ink); font-weight: 600; }
+.format-table code { color: var(--green-dark); font: 11px var(--mono); word-break: break-all; }
+.format-table td:last-child { color: var(--muted); line-height: 1.6; }
+
+/* 导出卡片：一个格式一张。左对齐而不是居中 —— 大字标签加一行说明，居中的话
+   说明文字会换行换得参差不齐。 */
+.export-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 11px 14px;
+  border: 1px solid #daddd3;
+  border-radius: 10px;
+  background: white;
+  text-align: left;
+  transition: .16s;
+}
+.export-card:hover { border-color: #9cad98; transform: translateY(-1px); }
+.export-card b { font-size: 14px; }
+.export-card small { color: var(--muted); font-size: 11px; line-height: 1.5; }
+.export-card.is-plain { background: #fbfaf5; }
+.export-layers-message { margin-top: 14px !important; }
+

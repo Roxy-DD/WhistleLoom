@@ -1,0 +1,44 @@
+# 本地工作区：个人笔记与临时文件 —— 不发布
+.workbuddy/
+
+# 根目录的说明文档：只发布 README.md，其余一律本地留存。
+# 这些是设计推演、法律分析、竞品调研和内部评审记录，不是使用文档。
+# 注意：.gitignore 只对「未跟踪」的文件生效 —— 已经进过提交的文件要另外
+# `git rm --cached` 才会真正离开仓库（ARCHITECTURE.md、PRODUCT_REVIEW.md 就是这么办的）。
+# .agents/skills/ 下的参考文档不在此列，那是功能的一部分，随仓库发布。
+/ARCHITECTURE.md
+/DESIGN_ARCHIVE.md
+/COMMUNITY_DESIGN.md
+/LEGAL_ARCHITECTURE.md
+/CHARTER.md
+/LICENSE-SCORES.md
+/CONTRIBUTING.md
+/DMCA.md
+/FEATURE_ROADMAP.md
+/COMPETITOR_ANALYSIS.md
+/PRODUCT_REVIEW.md
+
+# 备份与压缩包
+backups/
+*.zip
+*.7z
+*.tar.gz
+
+# 回归探针的临时产物（scripts/browser-probe.sh 生成，正常结束时会自动清理）
+__browser-probe.html
+.probe-output.json
+
+# 系统 / 编辑器
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# 杂项
+*.log
+*.tmp

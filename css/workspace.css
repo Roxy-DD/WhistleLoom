@@ -1,0 +1,312 @@
+/* Workspace controls and responsive editing layout */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  height: auto;
+  min-height: 76px;
+  gap: 22px;
+}
+.top-player {
+  position: static;
+  transform: none;
+  z-index: auto;
+  flex: 1 1 440px;
+  width: min(520px, 100%);
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 6px 10px;
+  box-shadow: none;
+  background: transparent;
+  border: 0;
+  gap: 9px;
+}
+.top-player .play-button {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+}
+.top-player .mute-toggle {
+  flex: 0 0 auto;
+  min-width: 51px;
+  min-height: 30px;
+  padding: 4px 7px;
+  border: 1px solid #dce4da;
+  border-radius: 7px;
+  color: #496a51;
+  background: #f4f7f2;
+  font-size: 10px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.top-player .mute-toggle:hover { background: #e7eee6; }
+.top-player .mute-toggle.is-muted {
+  border-color: #e4c8a3;
+  color: #8a5a20;
+  background: #fbf4e8;
+}
+.top-player .transport-info {
+  min-width: 84px;
+}
+/* 「准备演奏 / Ready to play」是一个不可拆的短句，窄屏上宁可让旁边的滑块变短，
+   也不要它折成两行 —— 折了以后上面那行字会顶着顶栏的上边缘，看着像排版坏了。
+   （折行的成因见下面 1120px 断点：那里把 min-width 降到 68，给了它被压窄的机会。） */
+.top-player .transport-info b {
+  white-space: nowrap;
+}
+.top-player .tempo-control {
+  flex: 1 1 auto;
+  /* 允许被压窄。原来滑块是固定宽度，加进数字框之后总宽超了上限，
+     结果不是滑块变短，而是旁边的「停止」和「速度」被挤成两行字。 */
+  min-width: 0;
+  margin: 0;
+  gap: 7px;
+}
+/* 「速度」「原曲」「108 BPM」这几个都是不可拆的短标签，宁可让滑块变短，
+   也不要让它们竖着排成两行。 */
+.top-player .tempo-control > span,
+.top-player .original-tempo,
+.top-player .tempo-number {
+  flex: none;
+  white-space: nowrap;
+}
+/* 滑块改成可伸缩：它是这一行里唯一「短一点也能用」的控件。 */
+.top-player .tempo-control input[type="range"] {
+  flex: 1 1 60px;
+  min-width: 48px;
+  width: auto;
+}
+.original-tempo {
+  border: 1px solid #dce4da;
+  border-radius: 5px;
+  padding: 4px 7px;
+  background: #f4f7f2;
+  color: #496a51;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.original-tempo:hover {
+  background: #e7eee6;
+}
+.top-actions {
+  flex: 0 0 auto;
+}
+.side-column {
+  position: sticky;
+  top: 88px;
+  align-self: start;
+  max-height: calc(100vh - 180px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #c9d1c6 transparent;
+  padding: 0 5px 8px 0;
+}
+.side-column::-webkit-scrollbar {
+  width: 7px;
+}
+.side-column::-webkit-scrollbar-thumb {
+  background: #c9d1c6;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+/* 侧栏是一根「有 max-height 的可滚动 flex 列」，所以每张卡片都是可被压缩的 flex item。
+ * 平时靠 flex item 默认的 min-height:auto 顶着，压不动；但只要哪张卡片加了
+ * overflow:hidden（曲库卡片为了把内容裁进圆角就加了），自动最小尺寸会变成 0，
+ * 那张卡片就会被压成 2px 高，内容又被自己的 overflow 裁掉 —— 看上去就像它根本不存在。
+ * 这里明确禁止压缩：卡片一律保持自己的自然高度，超出部分交给侧栏自己滚动。 */
+.side-column > * {
+  flex: none;
+}
+.score-toolbar {
+  top: 84px;
+  z-index: 20;
+  box-shadow: 0 5px 14px #303b2a12;
+}
+.score-paper {
+  overflow: visible;
+}
+.workspace {
+  padding-bottom: 44px;
+}
+@media (max-width: 1320px) {
+  /* 顶栏白边从 5.2% 收到固定 20px —— 这一段宽度上那些白边本来就是浪费。 */
+  .topbar {
+    gap: 12px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  /* 按钮排本来不许压缩（flex: 0 0 auto），压不动就只能把顶栏撑破。
+     这里解除压缩、给出 min-width: 0，它才会在自己那一格里老实收缩；
+     再给 overflow-x: auto 兜底 —— 万一某台机器上字体量出来宽了十几像素，
+     滚的是这一排，而不是整个顶栏被撑破。 */
+  .top-actions {
+    flex-shrink: 1;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+}
+@media (max-width: 1120px) {
+  .topbar {
+    gap: 12px;
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  .top-player {
+    flex-basis: 360px;
+    gap: 6px;
+  }
+}
+/* 顶栏一行要装四块：品牌 / 播放器 / 按钮排 / 语言切换器。
+   实测（Chromium，1440 宽）：中文一行占 1185px，英文占 1245px，
+   再加上两侧各 20px 白边，一行要撑到 1285px 才够。所以 1280px 往下就改两行。
+   改两行而不是给按钮排加横向滚动条，是因为滚动条做的第一件事就是把
+   「导出 / 打印」这种最要紧的按钮推出视野 —— 剩下的新建 / 导入 / 保存反而先露在外面，
+   轻重正好颠倒。两行则一个控件都不藏：
+     第一行  品牌 ·················· 按钮排 · 语言切换器
+     第二行  播放器（居中）
+   这里用 grid 而不是 flex-wrap，是因为 flex-wrap 只在「真的放不下」时才折行：
+   1280px 宽的中文界面恰好还塞得下一行，于是播放器会被排到最右边 ——
+   同一个宽度上切换两种语言得到两种截然不同的版面。grid 写死了行号，不会这样。 */
+@media (max-width: 1280px) {
+  .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    column-gap: 12px;
+    row-gap: 8px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+  .brand {
+    grid-area: 1 / 1;
+    justify-self: start;
+  }
+  .top-actions {
+    grid-area: 1 / 2;
+  }
+  .lang-switch {
+    grid-area: 1 / 3;
+  }
+  /* 第二行横跨三列，播放器自己在这一整行里居中。 */
+  .top-player {
+    grid-area: 2 / 1 / 3 / 4;
+    margin: 0 auto;
+  }
+  /* 顶栏变成两行就高了。下面这几个都是 sticky 定位、写死了「离顶多少」，
+     不跟着让开的话会滑到顶栏底下被盖住。 */
+  .side-column {
+    top: 130px;
+    max-height: calc(100vh - 156px);
+  }
+  .score-toolbar {
+    top: 126px;
+  }
+}
+@media (max-width: 760px) {
+  .topbar {
+    position: sticky;
+    display: flex;
+    /* base.css 里这条断点把顶栏设成了 column；这里要的是「横排 + 换行」，
+       因为下面几块都是靠 flex-basis: 100% 各占一整行的 —— 在 column 里，
+       flex-basis 量的是高度，那几块会变成撑满整屏高。 */
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    align-content: center;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+  /* 窄屏下品牌和语言切换器共用第一行，播放器和按钮排各占满一行：
+       谱 WhistleLoom ········ 中文
+       ▶ ♪ 有声 准备演奏 速度 原曲 —— 96 BPM 停止
+       新建 导入 保存到本机 导出 / 打印 */
+  .brand {
+    order: 0;
+  }
+  .lang-switch {
+    order: 1;
+    margin-left: auto;
+  }
+  .top-player {
+    order: 2;
+    flex: 1 0 100%;
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
+  .top-actions {
+    order: 3;
+    flex: 1 0 100%;
+    margin-left: 0;
+  }
+  .top-player .tempo-control {
+    min-width: 0;
+  }
+  .top-player .tempo-control input[type="range"] {
+    flex-basis: clamp(62px, 18vw, 110px);
+  }
+  .side-column {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+  }
+  .score-toolbar {
+    top: 8px;
+    z-index: 10;
+  }
+  .score-paper {
+    overflow: visible;
+  }
+  .workspace {
+    padding-bottom: 24px;
+  }
+}
+@media (max-width: 520px) {
+  .top-player {
+    gap: 5px;
+  }
+  .top-player .transport-info {
+    min-width: 56px;
+  }
+  .top-player .transport-info b {
+    font-size: 10px;
+  }
+  .top-player .tempo-control {
+    gap: 4px;
+  }
+  .top-player .tempo-control input[type="range"] {
+    flex-basis: 62px;
+  }
+  /* 窄屏上「速度」和「BPM」两个字都省掉：滑杆配一个数字框，意思已经够清楚了。
+     （这条同时盖住 .tempo-unit，它也是 .tempo-control 里的 span。） */
+  .top-player .tempo-control span {
+    display: none;
+  }
+  .tempo-number input {
+    width: 34px;
+  }
+  .top-player .btn {
+    padding: 6px 8px;
+  }
+}
+@media (max-width: 380px) {
+  .top-player .transport-info { min-width: 46px; }
+  .top-player .tempo-control input[type="range"] { flex-basis: 44px; min-width: 40px; }
+  .tempo-number { padding: 0 5px; }
+  .tempo-number input { width: 30px; }
+  .top-player .mute-toggle { min-width: 46px; padding-inline: 5px; }
+}
+
+#saveStatus {
+  font-weight: 500;
+  color: #63806a;
+}
+#saveStatus.save-error {
+  color: #ad5048;
+}

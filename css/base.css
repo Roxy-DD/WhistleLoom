@@ -1,0 +1,1637 @@
+:root {
+  --bg: #f6f3ed;
+  --paper: #fffefa;
+  --ink: #212820;
+  --muted: #778076;
+  --line: #e5e5dc;
+  --green: #456e58;
+  --green-dark: #315340;
+  --green-pale: #e8efe8;
+  --orange: #d08a52;
+  --red: #b9574d;
+  --shadow: 0 10px 35px #303b2a0c;
+  --serif: "Noto Serif SC", Georgia, serif;
+  --sans: "DM Sans", "Microsoft YaHei", sans-serif;
+  --mono: "DM Mono", monospace;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 14px;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+}
+.topbar {
+  height: 76px;
+  background: #fffefa;
+  border-bottom: 1px solid var(--line);
+  padding: 0 5.2%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.brand {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  text-decoration: none;
+  color: inherit;
+}
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--green);
+  color: white;
+  font: 600 20px var(--serif);
+}
+.brand b {
+  display: block;
+  font: 600 18px var(--serif);
+  letter-spacing: 0.04em;
+}
+.brand small {
+  font: 10px var(--mono);
+  letter-spacing: 0.08em;
+  color: #92998e;
+}
+.top-actions {
+  display: flex;
+  gap: 8px;
+}
+.btn {
+  border: 1px solid #daddd3;
+  background: white;
+  border-radius: 9px;
+  padding: 9px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: 0.16s;
+  /* 按钮上的字只有两三个，被挤窄时宁可整体收缩，也不要竖着排成两行 ——
+     「停止」竖成「停/止」是纯损失，没有任何场景需要按钮文字折行。 */
+  white-space: nowrap;
+}
+.btn:hover {
+  border-color: #9cad98;
+  transform: translateY(-1px);
+}
+.btn.primary {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+}
+.btn.primary:hover {
+  background: var(--green-dark);
+}
+.btn.ghost {
+  background: #fffefa;
+}
+.btn.small {
+  padding: 7px 11px;
+  font-size: 12px;
+}
+/* 界面语言切换器，挂在顶栏最右。
+   用原生 <select> 而不是自绘菜单：语言就两三种，键盘操作、触屏、屏幕阅读器
+   原生全都免费给对，自绘一个等于把这些重做一遍还容易漏。 */
+.lang-switch {
+  display: flex;
+  align-items: center;
+  flex: none;
+  padding: 0 4px 0 8px;
+  border: 1px solid #daddd3;
+  border-radius: 9px;
+  background: #fffefa;
+  transition: 0.16s;
+}
+.lang-switch:hover {
+  border-color: #9cad98;
+}
+.lang-switch select {
+  border: 0;
+  background: transparent;
+  padding: 8px 2px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  outline-offset: 3px;
+}
+.btn.wide {
+  width: 100%;
+  margin-top: 8px;
+}
+.btn.danger {
+  background: #fff;
+  border-color: #ebd2ce;
+  color: var(--red);
+}
+.file-btn {
+  position: relative;
+  overflow: hidden;
+}
+.file-btn input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+  width: 100%;
+}
+.workspace {
+  max-width: 1640px;
+  padding: 38px 34px 44px;
+  margin: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 350px;
+  gap: 26px;
+  align-items: start;
+}
+.editor-column {
+  min-width: 0;
+}
+.title-block {
+  margin: 0 0 20px;
+}
+/* 导入提示条。ABC / 曲谱文件 / 曲库载入之后，把「哪些地方被改过」直接摆在谱面上方。
+   过去这类提示只写进折叠着的 ABC 面板里（#formatMessage），面板收着就等于没提示；
+   而且 2.8 秒后自动消失，用户根本来不及看完。所以它独立出来、要手动关掉。
+   放在 .score-paper 外面是有意的：导出与打印会整块克隆谱面卡片，放在里面就会印到纸上。 */
+.score-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 14px;
+  padding: 11px 13px;
+  border: 1px solid #e8dfca;
+  border-left: 3px solid var(--orange);
+  border-radius: 9px;
+  background: #fdfaf2;
+  font-size: 11.5px;
+  line-height: 1.65;
+  color: #6b6252;
+}
+.score-notice[hidden] {
+  display: none;
+}
+.score-notice > span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.score-notice-close {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #a49a86;
+  font-size: 15px;
+  line-height: 1;
+}
+.score-notice-close:hover {
+  background: #f1eade;
+  color: #6b6252;
+}
+.eyebrow {
+  text-transform: uppercase;
+  font: 500 10px var(--mono);
+  letter-spacing: 0.11em;
+  color: #879287;
+}
+.eyebrow span {
+  color: var(--orange);
+  margin: 0 4px;
+}
+.title-input {
+  display: block;
+  margin: 8px 0 5px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  width: 100%;
+  font: 600 29px var(--serif);
+  color: var(--ink);
+}
+.subtitle {
+  color: var(--muted);
+  font-size: 12px;
+}
+.score-paper {
+  background: var(--paper);
+  border: 1px solid #e9e8df;
+  border-radius: 13px;
+  box-shadow: var(--shadow);
+  padding: 28px 30px 34px;
+  min-height: 340px;
+  overflow: hidden;
+}
+.paper-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ecece5;
+  padding-bottom: 15px;
+  margin-bottom: 16px;
+}
+.paper-title {
+  font: 600 17px var(--serif);
+}
+.paper-meta {
+  font: 12px var(--mono);
+  color: #848c82;
+  margin-left: 14px;
+}
+.icon-button {
+  border: 0;
+  background: transparent;
+  font-size: 21px;
+  color: #7a8379;
+  border-radius: 6px;
+}
+.icon-button:hover {
+  background: #f0f0e9;
+}
+.score-view {
+  width: 100%;
+  overflow-x: auto;
+}
+.score-system {
+  min-width: max-content;
+  border-bottom: 1px solid #f0f0e9;
+  padding: 12px 0 16px;
+}
+.score-system:last-child {
+  border-bottom: 0;
+}
+.measure-label {
+  font: 10px var(--mono);
+  color: #a2a69c;
+  margin: 0 0 5px 39px;
+}
+.measure {
+  display: inline-block;
+  vertical-align: top;
+  /* 横向不留内边距：小节的墨迹左右边界就等于它自己的盒子边界。分行的宽度预算
+     （js/notation.js 的 measureWidth / rowWidth）用的也是这个盒子宽度，两边必须
+     严格相等，撑满纸面后末小节的竖线才会正好落在版心右边缘、和谱头署名的右缘对齐。 */
+  padding: 0;
+  position: relative;
+}
+.measure:after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 12px;
+  bottom: 5px;
+  border-right: 1px solid #7f857c;
+}
+.measure:last-child:after {
+  border-right: 2px solid #484e47;
+}
+.measure-svg {
+  display: block;
+  overflow: visible;
+}
+.score-note {
+  cursor: pointer;
+}
+.score-note:hover .notehead {
+  fill: #70917a;
+}
+.score-note.selected .notehead {
+  stroke: #cd8b53;
+  stroke-width: 3;
+  fill: #fcf2e7;
+}
+.notehead {
+  fill: #303930;
+  stroke: #303930;
+  stroke-width: 1.4;
+}
+.notehead.open {
+  fill: #fffefa;
+}
+.staff-line {
+  stroke: #a8aca2;
+  stroke-width: 1;
+}
+.ledger-line {
+  stroke: #92988f;
+  stroke-width: 1;
+}
+.stem,
+.flag {
+  stroke: #303930;
+  fill: none;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+.beam { fill: #303930; stroke: none; }
+.key-text,
+.meter-text {
+  font: 14px var(--serif);
+  fill: #333b34;
+}
+.clef {
+  font: 31px serif;
+  fill: #657a69;
+}
+.accidental {
+  font: 15px var(--serif);
+  fill: #303930;
+}
+.rest-mark {
+  font: 18px var(--serif);
+  fill: #303930;
+}
+.numbers-row,
+.lyrics-row,
+.holes-row {
+  height: 35px;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding-left: 3px;
+  min-width: max-content;
+}
+.row-label {
+  font: 9px var(--mono);
+  color: #9ca197;
+  width: 35px;
+  flex: none;
+}
+.event-cell {
+  width: 68px;
+  min-height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.number-value {
+  font: 500 18px var(--serif);
+  color: #485e4c;
+  position: relative;
+}
+.number-value sup {
+  position: absolute;
+  font: 10px var(--serif);
+  left: 50%;
+  transform: translateX(-50%);
+  top: -8px;
+}
+.number-value sub {
+  position: absolute;
+  font: 10px var(--serif);
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: -10px;
+}
+/* 减时线：第 1 条横跨整个音组，第 2、3 条只覆盖组内更短的音符。left / width
+   由 renderMeasure 按音组算好后以行内样式给出，基准是所在的 .event-cell
+   （宽 52px、数字居中）。这里的 left/right 只是行内样式缺失时的回退。 */
+.duration-mark {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 5px;
+  border-bottom: 1px solid #738b76;
+  z-index: 2;
+}
+.duration-mark.line-1 {
+  bottom: -7px;
+}
+.duration-mark.line-2 {
+  bottom: -11px;
+}
+.duration-mark.line-3 {
+  bottom: -15px;
+}
+.lyric-value {
+  font: 13px var(--serif);
+  color: #555d54;
+  white-space: nowrap;
+}
+.hole-svg {
+  width: 25px;
+  height: 61px;
+  overflow: visible;
+}
+.hole-open {
+  fill: #fff;
+  stroke: #444c43;
+  stroke-width: 1.3;
+}
+.hole-closed {
+  fill: #252d26;
+  stroke: #252d26;
+  stroke-width: 1;
+}
+.hole-unavailable {
+  fill: #f4dfdc;
+  stroke: #ba5b4e;
+  stroke-width: 1;
+}
+.octave-mark {
+  font: 10px var(--serif);
+  fill: #677c69;
+}
+.empty-state {
+  min-height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: #778076;
+}
+.empty-state[hidden] {
+  display: none;
+}
+.empty-state b {
+  font: 600 17px var(--serif);
+  color: #4d594e;
+}
+.empty-state p {
+  font-size: 12px;
+}
+.empty-icon {
+  font-size: 32px;
+  color: #829885;
+  margin-bottom: 8px;
+}
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 17px;
+  margin-top: 14px;
+  background: #fffefa;
+  border: 1px solid #e9e8df;
+  border-radius: 11px;
+}
+.play-button {
+  width: 37px;
+  height: 37px;
+  border: 0;
+  background: var(--green);
+  color: white;
+  border-radius: 50%;
+  font-size: 13px;
+  padding-left: 3px;
+}
+.transport-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 94px;
+}
+.transport-info b {
+  font-size: 12px;
+}
+.transport-info span {
+  font: 10px var(--mono);
+  color: #8c9389;
+}
+.tempo-control {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  color: #7d867c;
+  font-size: 11px;
+}
+.tempo-control input[type="range"] {
+  width: 115px;
+  accent-color: var(--green);
+}
+/* 曲速有两个入口：滑杆管「一边听一边拧」，数字框管「我就要 108 这个数」。
+   两者写的是同一个值，由 app.js 的 applyTempo 统一落库，这里只管长相。 */
+.tempo-number {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 7px;
+  border: 1px solid #dce4da;
+  border-radius: 6px;
+  background: #fff;
+  transition: 0.15s;
+}
+.tempo-number:hover {
+  border-color: #c3d2c5;
+}
+.tempo-number:focus-within {
+  border-color: #93aa95;
+  box-shadow: 0 0 0 2px #e8efe8;
+}
+.tempo-number input {
+  width: 40px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: 600 11px var(--mono);
+  color: #3d4a3e;
+  text-align: right;
+}
+/* 数字框自带的上下小箭头很窄，塞在这么小的框里会把数字挤变形；
+   微调用键盘上下方向键，标题上也写了。 */
+.tempo-number input::-webkit-outer-spin-button,
+.tempo-number input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.tempo-number input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.tempo-unit {
+  font: 9px var(--mono);
+  letter-spacing: 0.04em;
+  color: #98a096;
+}
+.format-panel {
+  margin-top: 13px;
+  border: 1px solid #e4e4da;
+  background: #fbfaf6;
+  border-radius: 10px;
+  color: #677167;
+}
+.format-panel summary {
+  padding: 13px 15px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+.format-body {
+  padding: 0 15px 15px;
+}
+.format-body p {
+  font-size: 11px;
+}
+.format-body textarea {
+  width: 100%;
+  min-height: 150px;
+  border: 1px solid #ddd;
+  resize: vertical;
+  border-radius: 7px;
+  padding: 10px;
+  font: 11px/1.5 var(--mono);
+  background: #fff;
+}
+.format-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.format-actions span {
+  font-size: 11px;
+  color: var(--green);
+}
+.side-column {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+.side-card {
+  background: #fffefa;
+  border: 1px solid #e9e8df;
+  border-radius: 12px;
+  padding: 19px 19px 17px;
+  box-shadow: 0 4px 18px #303b2a08;
+}
+/* ── 公共曲库 ────────────────────────────────────────────────────────────────
+   用 <details> 做成可折叠卡片：默认收起，不占侧栏高度；点开才去挂载列表。 */
+.tune-card {
+  padding: 0;
+  overflow: hidden;
+}
+.tune-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 17px 19px;
+  cursor: pointer;
+  list-style: none;
+}
+.tune-summary::-webkit-details-marker {
+  display: none;
+}
+.tune-summary:focus-visible {
+  outline: 2px solid #93aa95;
+  outline-offset: -3px;
+}
+.tune-summary-main {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tune-summary-main b {
+  font: 600 16px var(--serif);
+}
+.tune-summary-note {
+  font-size: 10px;
+  color: #9aa298;
+}
+/* 展开后标题和正文之间拉一条分隔线，折叠时收起来。 */
+.tune-card[open] .tune-summary {
+  border-bottom: 1px solid #eeeee5;
+}
+.tune-body {
+  padding: 15px 19px 17px;
+}
+.tune-body .card-hint {
+  margin: 0 0 11px;
+}
+.tune-search {
+  display: grid;
+  gap: 8px;
+}
+.tune-search input,
+.tune-search select {
+  width: 100%;
+  height: 34px;
+  padding: 0 9px;
+  border: 1px solid #e1e3da;
+  border-radius: 7px;
+  background: #fff;
+  font-size: 12px;
+  color: #384239;
+  outline-color: #93aa95;
+}
+.tune-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 9px;
+}
+/* 按钮不许被压窄：宽度不够时它们自己换行，而不是把「下一页」竖着排成三个字。 */
+.tune-actions .btn {
+  flex: none;
+  white-space: nowrap;
+}
+/* 状态文字单独占一整行。它常常比较长（「离线曲库 150 首 · 点『搜索』联网查全部」），
+   和按钮挤在同一行会把按钮压变形。 */
+.tune-actions #tuneStatus {
+  flex: 1 1 100%;
+  font-size: 10px;
+  line-height: 1.5;
+  color: #8a9288;
+  min-width: 0;
+}
+.tune-list {
+  list-style: none;
+  margin: 11px 0 0;
+  padding: 0;
+  max-height: 292px;
+  overflow: auto;
+}
+.tune-list:empty {
+  display: none;
+}
+.tune-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid #f1f0e8;
+  background: transparent;
+  padding: 9px 7px;
+  border-radius: 7px;
+}
+.tune-item:hover {
+  background: var(--green-pale);
+}
+.tune-item:disabled {
+  opacity: 0.45;
+  cursor: progress;
+}
+.tune-item.is-loading {
+  background: var(--green-pale);
+  opacity: 1;
+}
+.tune-item b {
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: #2c362d;
+}
+.tune-item small {
+  font: 10px var(--mono);
+  letter-spacing: 0.02em;
+  color: #8f978d;
+}
+.tune-list .tune-empty {
+  font-size: 11px;
+  line-height: 1.5;
+  color: #8a9288;
+  padding: 12px 7px;
+}
+.tune-card .micro-note {
+  margin-top: 13px;
+}
+.card-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+.card-heading h2 {
+  font: 600 16px var(--serif);
+  margin: 4px 0 0;
+}
+.instrument-icon {
+  font: 25px var(--serif);
+  color: #7d977f;
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 11px;
+}
+.field-grid label,
+.note-entry label,
+.selection-editor > label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 10px;
+  color: #788076;
+}
+.field-grid select,
+.note-entry select,
+.selection-editor select,
+.selection-editor input {
+  width: 100%;
+  height: 34px;
+  padding: 0 9px;
+  border: 1px solid #e1e3da;
+  border-radius: 7px;
+  background: #fff;
+  font-size: 12px;
+  color: #384239;
+  outline-color: #93aa95;
+}
+.micro-note {
+  font-size: 10px;
+  line-height: 1.5;
+  color: #8a9288;
+  margin: 12px 0 0;
+}
+/* 「整体移调」占满字段格的一整行：左边标签、中间下拉自适应、右边转换按钮。 */
+.field-grid > .field-wide {
+  grid-column: 1 / -1;
+}
+.transpose-field {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  color: #788076;
+}
+.transpose-field .transpose-heading {
+  flex: none;
+  white-space: nowrap;
+}
+.transpose-field select {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.transpose-field .btn {
+  flex: none;
+  height: 34px;
+  padding: 0 13px;
+  font-size: 11px;
+  font-weight: 600;
+}
+.layers-card {
+  padding-bottom: 8px;
+}
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-top: 1px solid #f0f0e9;
+  cursor: pointer;
+}
+.toggle-row > span {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+}
+.layer-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #7f9681;
+}
+.number-dot {
+  background: #bd9061;
+}
+.lyrics-dot {
+  background: #8299ad;
+}
+.holes-dot {
+  background: #555c55;
+}
+.toggle-row input {
+  position: absolute;
+  opacity: 0;
+}
+.toggle-row > b {
+  width: 31px;
+  height: 17px;
+  border-radius: 10px;
+  background: #dfe2da;
+  position: relative;
+  transition: 0.15s;
+}
+.toggle-row > b:after {
+  content: "";
+  position: absolute;
+  width: 13px;
+  height: 13px;
+  left: 2px;
+  top: 2px;
+  background: white;
+  border-radius: 50%;
+  transition: 0.15s;
+  box-shadow: 0 1px 3px #0002;
+}
+.toggle-row input:checked + b {
+  background: #7f9a82;
+}
+.toggle-row input:checked + b:after {
+  transform: translateX(14px);
+}
+.card-hint {
+  font-size: 10px;
+  line-height: 1.5;
+  color: #8a9288;
+  margin: -8px 0 13px;
+}
+/* ── 「新增 / 修改」两个模式的标签 ──────────────────────────────────────────
+   这张卡里其实是两个功能完全不同的区域：上面「添加音符」是往谱面里加新音，
+   下面「编辑选中的音」是改动已经存在的音。一块是写、一块是改，误操作的后果
+   完全不同，所以必须一眼能分清。做法是给两块各挂一个模式标签，颜色拉开：
+   新增 = 绿（和主按钮同色，读作「正向、加东西」），
+   修改 = 橙（读作「注意，你在改动已有内容」）。 */
+.head-line {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.mode-tag {
+  flex: none;
+  padding: 4px 9px;
+  border-radius: 6px;
+  font: 600 10px var(--sans);
+  letter-spacing: 0.06em;
+  line-height: 1.4;
+}
+.mode-tag.add {
+  background: var(--green-pale);
+  border: 1px solid #cfe0d3;
+  color: var(--green-dark);
+}
+.mode-tag.edit {
+  background: #fbeedd;
+  border: 1px solid #f0d6b4;
+  color: #9a5a24;
+}
+.note-entry {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 9px;
+}
+.rest-button {
+  margin-top: 6px;
+}
+/* ── 选中音符的编辑面板 ──────────────────────────────────────────────────────
+   原来这块跟上面的「添加音符」只隔一条 1px 的浅灰线（#ebede5），颜色和卡片的
+   描边几乎一样，等于没分。更糟的是下面这块有一堆方框、勾选框和红色「删除」按钮，
+   比上面抢眼得多，视线会自己掉下来，然后顺手以为上面那排音高/时值也是改这里的。
+   现在改成：有底色、有描边、左侧一道橙色色条的独立面板 —— 嵌套关系一眼可辨；
+   再把标题、定位徽标和那句「上面是新增、这里是修改」补上，文字也说清楚。 */
+.selection-editor {
+  margin-top: 20px;
+  padding: 13px 14px 14px;
+  border: 1px solid #eeddc2;
+  border-left: 3px solid var(--orange);
+  border-radius: 10px;
+  background: #fdf7ee;
+  display: grid;
+  gap: 10px;
+}
+.selection-editor[hidden] {
+  display: none;
+}
+.selection-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.selection-head h3 {
+  margin: 0;
+  font: 600 13.5px var(--serif);
+  color: #5a4526;
+}
+/* 「第 35 个音」是个定位徽标，不是字段的名字。原来它是一条 10px 的等宽灰字贴在
+   面板最上面，读起来就像「下面那一堆框都属于它」，所以会被当成整块的标题。
+   改成徽标靠右，让位给真正的标题。 */
+.selection-chip {
+  margin-left: auto;
+  flex: none;
+  padding: 3px 8px;
+  border: 1px solid #eddcbf;
+  border-radius: 20px;
+  background: #fff;
+  font: 500 10px var(--mono);
+  color: #8a6a3c;
+  white-space: nowrap;
+}
+.selection-hint {
+  margin: -2px 0 0;
+  font-size: 10.5px;
+  line-height: 1.6;
+  color: #8b7a5e;
+}
+.selection-hint b {
+  color: #8a5320;
+}
+.selection-hint kbd {
+  font: 9px var(--mono);
+  border: 1px solid #e6d6ba;
+  background: #fff;
+  border-radius: 3px;
+  padding: 1px 3px;
+  color: #8a7a60;
+}
+.selection-editor > .connection-toggle {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  color: #48564a;
+  font-size: 11px;
+}
+/* 面板是暖色底，灰绿的字段名在上面会显得脏，换成暖棕更顺，也更像「同一张纸上的字」。 */
+.selection-editor > label {
+  color: #907a58;
+}
+.connection-toggle input[type="checkbox"] {
+  appearance: auto;
+  width: 15px;
+  height: 15px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: transparent;
+  accent-color: var(--green);
+  flex: none;
+}
+.connection-toggle input:disabled + span { color: var(--muted); }
+.lyric-input input {
+  padding: 0 9px;
+  height: 34px;
+  border: 1px solid #e1e3da;
+  border-radius: 7px;
+}
+.keyboard-tip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  color: #90968d;
+  font-size: 9px;
+}
+.keyboard-tip kbd {
+  font: 9px var(--mono);
+  border: 1px solid #ddd;
+  background: #fafaf7;
+  border-radius: 3px;
+  padding: 2px 4px;
+  color: #6c756b;
+}
+.keyboard-tip span {
+  margin: 0 4px 0 0;
+}
+.help-card {
+  display: flex;
+  gap: 10px;
+  padding: 14px;
+  background: #edf2eb;
+  border: 1px solid #dfe9de;
+  border-radius: 10px;
+  color: #536856;
+}
+.help-card > span {
+  font-size: 16px;
+}
+.help-card b {
+  font-size: 11px;
+}
+.help-card p {
+  margin: 5px 0 0;
+  font-size: 10px;
+  line-height: 1.55;
+  color: #738073;
+}
+.footer {
+  max-width: 1430px;
+  margin: auto;
+  padding: 0 34px 25px;
+  display: flex;
+  justify-content: space-between;
+  color: #989e94;
+  font-size: 10px;
+}
+.staff-layer.hidden,
+.numbers-layer.hidden,
+.lyrics-layer.hidden,
+.holes-layer.hidden {
+  display: none;
+}
+.chromatic-warning {
+  font: 9px var(--mono);
+  color: #b9574d;
+}
+.footer span:last-child {
+  max-width: 60%;
+  text-align: right;
+}
+@media (max-width: 1000px) {
+  .workspace {
+    grid-template-columns: minmax(0, 1fr) 310px;
+    padding: 28px 20px;
+    gap: 16px;
+  }
+  .topbar {
+    padding: 0 20px;
+  }
+  .score-paper {
+    padding: 22px 18px;
+  }
+}
+@media (max-width: 760px) {
+  .topbar {
+    height: auto;
+    min-height: 64px;
+    gap: 12px;
+    align-items: flex-start;
+    padding: 13px 16px;
+    flex-direction: column;
+  }
+  .top-actions {
+    width: 100%;
+    overflow: auto;
+  }
+  .top-actions .btn {
+    white-space: nowrap;
+  }
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    padding: 22px 13px;
+    gap: 15px;
+  }
+  .editor-column,
+  .side-column {
+    width: 100%;
+  }
+  .side-column {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+  .title-input {
+    font-size: 25px;
+  }
+  .score-paper {
+    padding: 19px 13px;
+    min-height: 250px;
+  }
+  .transport {
+    gap: 8px;
+    padding: 12px;
+  }
+  .tempo-control {
+    gap: 5px;
+  }
+  .tempo-control input[type="range"] {
+    width: 75px;
+  }
+  .footer {
+    padding: 0 14px 18px;
+    display: block;
+    line-height: 1.6;
+  }
+  .footer span:last-child {
+    text-align: left;
+    display: block;
+    max-width: none;
+  }
+}
+.sample-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  color: #889186;
+  font-size: 11px;
+}
+.sample-picker select {
+  min-width: 210px;
+  height: 31px;
+  border: 1px solid #e0e2d9;
+  border-radius: 7px;
+  background: #fffefa;
+  padding: 0 9px;
+  font-size: 11px;
+  color: #505a50;
+}
+.score-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid #ecece4;
+  background: #fafaf6;
+  border-radius: 8px;
+  padding: 5px;
+  margin: -3px 0 10px;
+  position: sticky;
+  left: 0;
+  width: max-content;
+  max-width: 100%;
+  z-index: 2;
+}
+.score-toolbar > i {
+  height: 21px;
+  border-left: 1px solid #dedfd6;
+  margin: 0 3px;
+}
+.shortcut-help {
+  position: relative;
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+.shortcut-help > summary {
+  list-style: none;
+  cursor: pointer;
+  border: 1px solid #e4e5dc;
+  border-radius: 7px;
+  padding: 7px 9px;
+  color: #4d6e59;
+  font: 11px var(--sans);
+  white-space: nowrap;
+}
+.shortcut-help > summary::-webkit-details-marker {
+  display: none;
+}
+.shortcut-help > summary:focus-visible {
+  outline: 2px solid #70917a;
+  outline-offset: 2px;
+}
+.shortcut-popover {
+  position: absolute;
+  z-index: 8;
+  top: calc(100% + 8px);
+  right: 0;
+  width: min(300px, 80vw);
+  padding: 14px 16px;
+  border: 1px solid #e7e7de;
+  border-radius: 10px;
+  background: #fffefa;
+  box-shadow: 0 12px 30px #29352b24;
+  color: #35433a;
+}
+.shortcut-popover b {
+  font: 600 14px var(--serif);
+}
+.shortcut-popover dl {
+  display: grid;
+  grid-template-columns: 112px 1fr;
+  gap: 8px 10px;
+  margin: 12px 0;
+  font-size: 11px;
+}
+.shortcut-popover dt {
+  font-family: var(--mono);
+  color: #496d57;
+}
+.shortcut-popover dd {
+  margin: 0;
+}
+.shortcut-popover small {
+  color: #858c80;
+  font-size: 10px;
+}
+.tool-button {
+  height: 29px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: #566156;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.tool-button:hover {
+  background: #e9eee7;
+  color: #34533c;
+}
+.tool-button span {
+  font-size: 10px;
+}
+.tool-button.add-tool {
+  background: #e7eee6;
+  color: #3f6448;
+  font-weight: 600;
+}
+.score-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #899187;
+  font-size: 10px;
+  white-space: nowrap;
+}
+.score-toolbar select {
+  height: 27px;
+  min-width: 51px;
+  padding: 0 5px;
+  border: 1px solid #e5e6df;
+  border-radius: 5px;
+  background: white;
+  font-size: 14px;
+}
+.degree-pad {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 5px;
+  margin: -2px 0 12px;
+}
+.degree-pad button {
+  height: 32px;
+  border: 1px solid #e0e7df;
+  border-radius: 6px;
+  background: #f5f8f3;
+  color: #4d6d53;
+  font: 600 14px var(--serif);
+}
+.degree-pad button:hover {
+  background: #e3ede2;
+  border-color: #a8bda7;
+}
+.degree-pad button:active {
+  transform: scale(0.96);
+}
+
+.event-cell {
+  cursor: pointer;
+  border-radius: 4px;
+}
+.event-cell:hover {
+  background: #f2f5ee;
+}
+.event-cell.active {
+  background: #edf2e9;
+  outline: 1px solid #d9e6d7;
+}
+.numbers-layer,
+.lyrics-layer,
+.holes-layer {
+  position: relative;
+  padding-top: 9px;
+}
+.numbers-layer:before,
+.lyrics-layer:before,
+.holes-layer:before {
+  position: absolute;
+  left: 4px;
+  top: 0;
+  color: #a2a89e;
+  font: 9px var(--mono);
+}
+.numbers-layer:before {
+  content: "简谱";
+}
+.lyrics-layer:before {
+  content: "歌词";
+}
+.holes-layer:before {
+  content: "指法";
+}
+.rest-hole {
+  font: 12px var(--mono);
+  color: #9a9f95;
+}
+.score-note:focus {
+  outline: none;
+}
+.score-note:focus-visible .notehead,
+.score-note:focus-visible .rest-mark {
+  stroke: #cd8b53;
+  stroke-width: 3;
+}
+.event-cell:focus-visible {
+  outline: 2px solid #cd8b53;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+.score-note.selected .stem,
+.score-note.selected .flag {
+  stroke: #bf8251;
+}
+@media (max-width: 520px) {
+  .score-toolbar {
+    gap: 2px;
+  }
+  .tool-button {
+    padding: 0 5px;
+  }
+  .score-toolbar label {
+    font-size: 0;
+  }
+  .sample-picker {
+    flex-wrap: wrap;
+  }
+  .sample-picker select {
+    min-width: 0;
+    flex: 1;
+  }
+  .card-heading h2 {
+    font-size: 15px;
+  }
+  /* 极窄屏上语言切换器和品牌挤在同一行，左右各收一点，给品牌多留几像素。 */
+  .lang-switch {
+    padding-left: 4px;
+    padding-right: 2px;
+  }
+}
+.numbers-layer,
+.lyrics-layer,
+.holes-layer {
+  display: flex;
+  align-items: center;
+}
+.numbers-layer:before,
+.lyrics-layer:before,
+.holes-layer:before {
+  left: 2px;
+  top: -7px;
+  font-size: 8px;
+  opacity: 0.8;
+}
+.measure {
+  min-width: max-content;
+}
+.measure-svg {
+  max-width: none;
+}
+.score-system {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: nowrap;
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
+  padding: 13px 0 18px;
+  overflow: visible;
+}
+.measure {
+  margin: 0;
+}
+.number-value {
+  font-size: 25px;
+}
+.lyric-value {
+  font-size: 17px;
+}
+/* 单元格宽度跟随谱面步长（.measure 上的 --note-cell），见 css/notation.css 同名规则。 */
+.event-cell {
+  width: var(--note-cell, 52px);
+  min-width: var(--note-cell, 52px);
+}
+.hole-svg {
+  width: 38px;
+  height: 108px;
+}
+.holes-layer {
+  min-height: 119px;
+}
+.numbers-layer,
+.lyrics-layer {
+  min-height: 43px;
+}
+.measure-label {
+  font-size: 11px;
+}
+.score-toolbar {
+  flex-wrap: wrap;
+}
+.zoom-readout {
+  font: 10px var(--mono);
+  color: #778076;
+  min-width: 33px;
+  text-align: center;
+}
+#scoreView {
+  transform-origin: top left;
+  overflow: visible;
+}
+.score-view {
+  overflow-x: auto;
+}
+.measure-svg {
+  display: block;
+}
+.measure:after {
+  top: 14px;
+  bottom: 7px;
+}
+.score-paper {
+  overflow: hidden;
+}
+/* Sticky editing workspace: keep frequently used controls within reach while navigating long scores. */
+@media (min-width: 761px) {
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+  .side-column {
+    position: sticky;
+    top: 88px;
+    align-self: start;
+    max-height: calc(100vh - 104px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: #c9d1c6 transparent;
+    padding: 0 5px 8px 0;
+  }
+  .side-column::-webkit-scrollbar {
+    width: 7px;
+  }
+  .side-column::-webkit-scrollbar-thumb {
+    background: #c9d1c6;
+    border-radius: 8px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .score-toolbar {
+    top: 84px;
+    z-index: 20;
+    box-shadow: 0 5px 14px #303b2a12;
+  }
+  .score-paper {
+    overflow: visible;
+  }
+}
+@media (max-width: 760px) {
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  }
+  .side-column {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding: 0;
+  }
+  .score-toolbar {
+    top: 8px;
+    z-index: 10;
+  }
+  .score-paper {
+    overflow: visible;
+  }
+}
+/* Put octave '+' below the fingering so it cannot be mistaken for a hole or its label. */
+.octave-mark {
+  font-size: 10px;
+  font-weight: 700;
+  fill: #566f59;
+}
+
+/* Jianpu: octave dots sit directly above or below the degree; duration marks encode value only. */
+.number-value {
+  position: relative;
+  display: inline-block;
+  line-height: 1.05;
+  padding-bottom: 4px;
+}
+.solfege-core {
+  position: relative;
+}
+.octave-dots {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font: 700 8px/1 var(--sans);
+  letter-spacing: 1px;
+  color: #485e4c;
+}
+.octave-dots.high {
+  top: -9px;
+}
+.octave-dots.low {
+  top: 22px;
+}
+.duration-extension {
+  display: inline-block;
+  margin-left: 3px;
+  font-size: 0.78em;
+  letter-spacing: -2px;
+  vertical-align: 0.08em;
+}
+.duration-dot {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: 0.58em;
+}
+.key-text {
+  font: 15px var(--serif);
+  fill: #303930;
+}
+.meter-text {
+  font: 12px var(--serif);
+  font-weight: 600;
+  fill: #303930;
+}
+
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+.note-navigation-item:focus-visible {
+  outline: 3px solid #d08a52;
+  outline-offset: 3px;
+}
+.sr-only:focus-within {
+  position: fixed !important;
+  z-index: 100 !important;
+  top: 88px !important;
+  left: 12px !important;
+  width: min(340px, calc(100vw - 24px)) !important;
+  max-height: calc(100vh - 104px) !important;
+  height: auto !important;
+  padding: 10px !important;
+  margin: 0 !important;
+  overflow: auto !important;
+  clip: auto !important;
+  white-space: normal !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 10px;
+  background: var(--paper);
+  box-shadow: var(--shadow);
+}
+.note-navigation-item {
+  display: block;
+  width: 100%;
+  padding: 7px 9px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: transparent;
+  text-align: left;
+}
+.note-navigation-item[aria-pressed="true"] {
+  background: var(--green-pale);
+}

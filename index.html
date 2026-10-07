@@ -1,0 +1,732 @@
+<!doctype html>
+<!-- 界面语言由 js/i18n.js 决定（?lang= → localStorage → 浏览器语言 → 中文），
+     它会把这个 lang 属性改成实际语言。这里写的 zh-CN 是「没有 JS 时的默认」。 -->
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f6f3ed" />
+    <meta
+      name="description"
+      content="WhistleLoom（谱间）· 交互曲谱工作台：浏览器里直接编辑单旋律曲谱，同时看五线谱、简谱、歌词和爱尔兰哨笛洞洞谱；可从 thesession.org 公共曲库载入传统曲调，导出可逆 PDF / PNG。"
+      data-i18n-attrs="content"
+    />
+    <title data-i18n>WhistleLoom · 谱间 —— 哨笛曲谱工作台</title>
+    <!-- 图标内嵌成 data URI：项目要保持「双击 index.html 就能用」，不该为一个小图标
+         多带一个需要额外请求的文件，也不该依赖网络。 -->
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23456e58'/%3E%3Ctext x='16' y='23.5' font-size='19' text-anchor='middle' fill='%23fffefa' font-family='Georgia,serif'%3E%E8%B0%B1%3C/text%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/workspace.css" />
+    <link rel="stylesheet" href="css/notation.css" />
+    <link rel="stylesheet" href="css/print.css" />
+    <link rel="stylesheet" href="css/export.css" />
+  </head>
+  <body>
+    <!-- 静态文案的三种标记（含义见 js/i18n.js 顶部）：
+           data-i18n            换成整段文字
+           data-i18n-lead       只换开头那个裸文本节点（元素里还有别的控件时用）
+           data-i18n-attrs="x"  换属性，键是那个属性当前的值
+         注意：由脚本生成的元素（下拉选项、导出卡片、状态行）不打标记 ——
+         它们的元素会被 app.js 整批换掉，标记会指到已经从页面上摘掉的节点上去。 -->
+    <header class="topbar">
+      <a
+        class="brand"
+        href="#"
+        aria-label="WhistleLoom 谱间 主页"
+        data-i18n-attrs="aria-label"
+        ><!-- 「谱」这个字是标志本身，不是文案：它跟品牌图形一起走，不随界面语言改。 --><span class="brand-mark">谱</span
+        ><span
+          ><b>WhistleLoom</b
+          ><small data-i18n>谱间 · SCORE STUDIO</small></span
+        ></a
+      >
+      <div class="transport top-player">
+        <button class="play-button" id="playButton" aria-label="播放">▶</button>
+        <button
+          class="mute-toggle"
+          id="muteButton"
+          type="button"
+          aria-pressed="false"
+          aria-label="切换为静音播放"
+          data-i18n-attrs="aria-label title"
+          title="当前为有声播放"
+        >
+          ♪ 有声
+        </button>
+        <div class="transport-info">
+          <b id="playStatus">准备演奏</b><span id="position">—</span>
+        </div>
+        <div class="tempo-control">
+          <span data-i18n>速度</span
+          ><button
+            class="original-tempo"
+            id="originalTempo"
+            type="button"
+            title="恢复导入曲谱记录的原曲速度"
+            data-i18n-attrs="title"
+            data-i18n
+          >
+            原曲</button
+          ><input
+            id="tempo"
+            type="range"
+            min="30"
+            max="240"
+            value="96"
+            aria-label="曲速滑杆"
+            data-i18n-attrs="aria-label"
+          /><label
+            class="tempo-number"
+            title="也可以直接输入数字，或用上下方向键微调"
+            data-i18n-attrs="title"
+            ><input
+              id="tempoNumber"
+              type="number"
+              min="20"
+              max="400"
+              step="1"
+              value="96"
+              inputmode="numeric"
+              aria-label="曲速，每分钟四分音符数"
+              data-i18n-attrs="aria-label"
+            /><span class="tempo-unit">BPM</span></label
+          >
+        </div>
+        <button class="btn ghost small" id="stopButton" data-i18n>停止</button>
+      </div>
+      <div class="top-actions">
+        <button class="btn ghost" id="newScore" data-i18n>新建</button>
+        <button class="btn ghost" id="openImport" data-i18n>导入</button>
+        <button class="btn ghost" id="saveScore" data-i18n>保存到本机</button>
+        <button class="btn primary" id="openExport" data-i18n>导出 / 打印</button>
+      </div>
+      <!-- 语言下拉的选项由 app.js 从 I18N_LANGS 生成（语言名用它自己的语言写）。
+           不另加图标的理由：这几个字就是它自己的说明，多挂一个地球/齿轮反而不清楚。
+           刻意放在 .top-actions **外面**：按钮排是整条顶栏里唯一会横向滚动的一块，
+           切换器排在里面的话，被挤到右边时会被按钮盖住，还得先滚才能点到它。 -->
+      <label class="lang-switch" title="切换界面语言" data-i18n-attrs="title">
+        <select
+          id="langSelect"
+          aria-label="界面语言"
+          data-i18n-attrs="aria-label"
+        ></select>
+      </label>
+    </header>
+
+    <main class="workspace">
+      <section class="editor-column">
+        <div class="title-block">
+          <div class="eyebrow">
+            <span data-i18n>我的曲谱</span> <span>•</span>
+            <span data-i18n>编辑中</span>
+          </div>
+          <input
+            class="title-input"
+            id="title"
+            value="爱尔兰小调"
+            aria-label="曲谱标题"
+            data-i18n-attrs="aria-label"
+          />
+          <div class="subtitle" data-i18n>
+            点击音符即可编辑。改动会即时反映在谱面、简谱和指法图中。
+          </div>
+          <div class="sample-picker">
+            <span data-i18n>试试示例</span
+            ><select
+              id="sampleSelect"
+              aria-label="载入示例曲谱"
+              data-i18n-attrs="aria-label"
+            >
+              <option value="" data-i18n>选择一首示例曲</option></select
+            ><button class="btn ghost small" id="loadSample" data-i18n>载入</button>
+          </div>
+        </div>
+
+        <div class="score-notice" id="scoreNotice" role="status" hidden>
+          <span id="scoreNoticeText"></span>
+          <button
+            type="button"
+            class="score-notice-close"
+            id="scoreNoticeClose"
+            aria-label="关闭提示"
+            data-i18n-attrs="aria-label"
+          >
+            ×</button
+          >
+        </div>
+
+        <section
+          class="score-paper"
+          aria-label="曲谱编辑区"
+          data-i18n-attrs="aria-label"
+        >
+          <div class="paper-heading">
+            <div>
+              <span class="paper-title" id="paperTitle">爱尔兰小调</span
+              ><span class="paper-meta" id="paperMeta"></span>
+              <div class="paper-subtitle" id="paperSubtitle"></div>
+              <div class="paper-credits" id="paperCredits"></div>
+            </div>
+            <button
+              class="icon-button"
+              id="fitScore"
+              title="适合窗口"
+              data-i18n-attrs="title"
+            >
+              ⤢
+            </button>
+          </div>
+          <div
+            class="score-toolbar"
+            role="toolbar"
+            aria-label="曲谱编辑工具"
+            data-i18n-attrs="aria-label"
+          >
+            <button
+              class="tool-button"
+              id="undoButton"
+              title="撤销 (Ctrl+Z)"
+              data-i18n-attrs="title"
+            >
+              ↶ <span data-i18n>撤销</span>
+            </button>
+            <button
+              class="tool-button"
+              id="redoButton"
+              title="重做 (Ctrl+Y)"
+              data-i18n-attrs="title"
+            >
+              ↷ <span data-i18n>重做</span>
+            </button>
+            <i></i
+            ><button
+              class="tool-button"
+              id="zoomOut"
+              title="缩小谱面"
+              data-i18n-attrs="title"
+            >
+              A−</button
+            ><span class="zoom-readout" id="zoomReadout">120%</span
+            ><button
+              class="tool-button"
+              id="zoomIn"
+              title="放大谱面"
+              data-i18n-attrs="title"
+            >
+              A＋
+            </button>
+            <i></i
+            ><label data-i18n-lead
+              >音符时值<select id="toolbarDuration">
+                <option value="0.25">𝅘𝅥𝅯</option>
+                <option value="0.5">♪</option>
+                <option value="0.75">♪·</option>
+                <option value="1" selected>♩</option>
+                <option value="1.5">♩·</option>
+                <option value="2">𝅗𝅥</option>
+                <option value="4">𝅝</option>
+              </select></label
+            >
+            <button class="tool-button add-tool" id="toolbarAdd" data-i18n>
+              ＋ 插入音符
+            </button>
+            <button class="tool-button" id="toolbarRest">
+              𝄽 <span data-i18n>休止符</span>
+            </button>
+            <details class="shortcut-help">
+              <summary
+                aria-label="查看键盘快捷键"
+                data-i18n-attrs="aria-label"
+                data-i18n
+                >⌨ 快捷键</summary
+              >
+              <div class="shortcut-popover">
+                <b data-i18n>键盘快捷键</b>
+                <dl>
+                  <dt>← / →</dt>
+                  <dd data-i18n>选择前一个 / 后一个音符</dd>
+                  <dt>↑ / ↓</dt>
+                  <dd data-i18n>升高 / 降低半音</dd>
+                  <dt>W / Q</dt>
+                  <dd data-i18n>时值加倍 / 减半</dd>
+                  <dt>Delete</dt>
+                  <dd data-i18n>删除选中音符</dd>
+                  <dt>Ctrl / ⌘ + Z</dt>
+                  <dd data-i18n>撤销</dd>
+                  <dt>Ctrl / ⌘ + Shift + Z</dt>
+                  <dd data-i18n>重做</dd>
+                  <dt>Ctrl / ⌘ + S</dt>
+                  <dd data-i18n>导出可编辑备份</dd>
+                  <dt>Ctrl / ⌘ + + / −</dt>
+                  <dd data-i18n>缩放曲谱</dd>
+                  <dt>空格</dt>
+                  <dd data-i18n>播放 / 暂停（选中曲谱音符时）</dd>
+                </dl>
+                <small data-i18n>快捷键在输入框内会让位给文字编辑。</small>
+              </div>
+            </details>
+          </div>
+          <div id="scoreView" class="score-view"></div>
+          <div
+            id="accessibleScoreList"
+            class="sr-only"
+            aria-label="音符导航"
+            data-i18n-attrs="aria-label"
+          ></div>
+          <div id="emptyState" class="empty-state" hidden>
+            <span class="empty-icon">♬</span
+            ><b data-i18n>从第一个音符开始</b>
+            <p data-i18n>点右侧的音符按钮，或导入 ABC 曲谱。</p>
+          </div>
+        </section>
+
+        <details class="format-panel">
+          <summary data-i18n>
+            文本格式导入 / 导出（ABC · MusicXML，给 AI 或其他记谱软件用）
+          </summary>
+          <div class="format-body">
+            <p data-i18n>
+              平时直接编辑曲谱即可。文本格式是可选的交换方式：ABC 短小、适合贴给
+              AI；MusicXML 完整、适合交给记谱软件接着排版。
+            </p>
+            <div class="format-actions">
+              <label class="format-picker" data-i18n-lead
+                >格式<select
+                  id="textFormat"
+                  aria-label="选择文本格式"
+                  data-i18n-attrs="aria-label"
+                ></select></label
+              >
+              <button class="btn ghost small" id="refreshText" data-i18n>
+                由当前曲谱生成</button
+              ><button class="btn ghost small" id="copyText" data-i18n>复制</button>
+            </div>
+            <textarea
+              id="scoreText"
+              spellcheck="false"
+              aria-label="曲谱文本"
+              data-i18n-attrs="aria-label"
+            ></textarea>
+            <div class="format-actions">
+              <button class="btn primary small" id="loadText" data-i18n>
+                以这段文本更新曲谱</button
+              ><span id="formatMessage" role="status"></span>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <aside
+        class="side-column"
+        id="sideColumn"
+        aria-label="曲谱与音符编辑面板"
+        data-i18n-attrs="aria-label"
+      >
+        <details class="side-card tune-card" id="tuneCard">
+          <summary class="tune-summary">
+            <span class="tune-summary-main">
+              <span class="eyebrow" data-i18n>曲目来源</span>
+              <b data-i18n>公共曲库</b>
+            </span>
+            <span class="tune-summary-note" data-i18n>爱尔兰传统曲调</span>
+          </summary>
+          <div class="tune-body">
+            <p class="card-hint" data-i18n>
+              从 thesession.org 的两万多首传统曲调里挑一首，直接载入编辑器继续改。
+            </p>
+            <div class="tune-search">
+              <input
+                id="tuneQuery"
+                type="search"
+                placeholder="搜曲名，留空看最热门的"
+                aria-label="搜索公共曲库"
+                data-i18n-attrs="aria-label placeholder"
+              />
+              <!-- 「全部曲种」必须是第一项：没它的话 <select> 的默认值会落在第一项上，
+                   于是「不筛选」这个状态根本选不到，检索结果会被悄悄限制成 reel。
+                   其余选项由 app.js 从 TUNE_TYPE_FILTERS 追加在后面。 -->
+              <select
+                id="tuneType"
+                aria-label="按曲种筛选"
+                data-i18n-attrs="aria-label"
+              >
+                <option value="" data-i18n>全部曲种</option>
+              </select>
+            </div>
+            <div class="tune-actions">
+              <button
+                class="btn ghost small"
+                id="tuneSearchBtn"
+                type="button"
+                data-i18n
+              >
+                搜索
+              </button>
+              <button
+                class="btn ghost small"
+                id="tunePageBtn"
+                type="button"
+                data-i18n
+              >
+                下一页
+              </button>
+              <span id="tuneStatus" role="status" aria-live="polite"></span>
+            </div>
+            <ul
+              class="tune-list"
+              id="tuneList"
+              aria-label="曲库曲目列表"
+              data-i18n-attrs="aria-label"
+            ></ul>
+            <p class="micro-note" id="tuneNote" data-i18n>
+              曲库数据来自 thesession.org，以 ODbL 1.0 授权发布。载入时会把谱例换成编辑器能
+              表达的记法，改动了什么都会列出来。
+            </p>
+          </div>
+        </details>
+
+        <section class="side-card instrument-card">
+          <div class="card-heading">
+            <div>
+              <div class="eyebrow" data-i18n>演奏设置</div>
+              <h2 data-i18n>乐器与调性</h2>
+            </div>
+            <span class="instrument-icon">♩</span>
+          </div>
+          <div class="field-grid">
+            <label data-i18n-lead
+              >乐器<select id="instrument">
+                <option value="whistle" data-i18n>爱尔兰哨笛</option>
+                <option value="recorder" disabled data-i18n>竖笛（后续支持）</option>
+                <option value="flute" disabled data-i18n>长笛（后续支持）</option>
+              </select></label
+            >
+            <label data-i18n-lead
+              >哨笛调<select id="whistleKey">
+                <option value="D" data-i18n>D 调</option>
+                <option value="C" data-i18n>C 调</option>
+                <option value="Bb" data-i18n>B♭ 调</option>
+                <option value="G" data-i18n>G 调</option>
+                <option value="F" data-i18n>F 调</option>
+                <option value="Eb" data-i18n>E♭ 调</option>
+                <option value="A" data-i18n>A 调</option>
+              </select></label
+            >
+            <label data-i18n-lead>简谱主音<select id="tonic"></select></label>
+            <label data-i18n-lead
+              >调式<select id="mode"></select
+            ></label>
+            <label data-i18n-lead
+              >拍号<select id="meter"></select
+            ></label>
+            <div class="field-wide transpose-field">
+              <span class="transpose-heading" data-i18n>整体移调</span>
+              <select
+                id="transposeTarget"
+                aria-label="整首曲子移到哪个调"
+                data-i18n-attrs="aria-label"
+              ></select>
+              <button
+                class="btn ghost"
+                id="applyTranspose"
+                type="button"
+                data-i18n
+              >
+                转换
+              </button>
+            </div>
+          </div>
+          <p class="micro-note" data-i18n>
+            主音决定简谱“1”；哨笛调决定实际音高与指法。「简谱主音」只管记谱：改它不会让音变高变低，只是换个音当“1”。要把整首曲子挪到别的调（比如 C 调曲改成 D 调），用上面的「整体移调」。
+          </p>
+          <details class="score-info-editor">
+            <summary data-i18n>曲谱署名与原调</summary>
+            <div class="field-grid">
+              <label data-i18n-lead>原调<select id="sourceTonic">
+                <option value="" data-i18n>未注明</option><option>C</option><option>C#</option><option>Db</option><option>D</option><option>D#</option><option>Eb</option><option>E</option><option>F</option><option>F#</option><option>Gb</option><option>G</option><option>G#</option><option>Ab</option><option>A</option><option>A#</option><option>Bb</option><option>B</option>
+              </select></label>
+              <label data-i18n-lead>作曲<input
+                  id="composer"
+                  maxlength="200"
+                  placeholder="作曲者"
+                  data-i18n-attrs="placeholder"
+              /></label>
+              <label data-i18n-lead>作词<input
+                  id="lyricist"
+                  maxlength="200"
+                  placeholder="作词者"
+                  data-i18n-attrs="placeholder"
+              /></label>
+              <label data-i18n-lead>编配<input
+                  id="arranger"
+                  maxlength="200"
+                  placeholder="编配者"
+                  data-i18n-attrs="placeholder"
+              /></label>
+              <label class="field-wide" data-i18n-lead>副标题<input
+                  id="subtitle"
+                  maxlength="200"
+                  placeholder="例如：歌曲 / 练习曲"
+                  data-i18n-attrs="placeholder"
+              /></label>
+            </div>
+          </details>
+        </section>
+
+        <section class="side-card layers-card">
+          <div class="card-heading">
+            <div>
+              <div class="eyebrow" data-i18n>谱面图层</div>
+              <h2 data-i18n>显示内容</h2>
+            </div>
+          </div>
+          <label class="toggle-row"
+            ><span
+              ><i class="layer-dot staff-dot"></i
+              ><span data-i18n>五线谱</span></span
+            ><input type="checkbox" id="showStaff" checked /><b></b
+          ></label>
+          <label class="toggle-row"
+            ><span
+              ><i class="layer-dot number-dot"></i
+              ><span data-i18n>简谱数字</span></span
+            ><input type="checkbox" id="showNumbers" checked /><b></b
+          ></label>
+          <label class="toggle-row"
+            ><span
+              ><i class="layer-dot lyrics-dot"></i
+              ><span data-i18n>歌词对照</span></span
+            ><input type="checkbox" id="showLyrics" checked /><b></b
+          ></label>
+          <label class="toggle-row"
+            ><span
+              ><i class="layer-dot holes-dot"></i
+              ><span data-i18n>哨笛洞洞谱</span></span
+            ><input type="checkbox" id="showHoles" checked /><b></b
+          ></label>
+        </section>
+
+        <section class="side-card note-card">
+          <div class="card-heading">
+            <div class="head-line">
+              <span class="mode-tag add" data-i18n>新增</span>
+              <div>
+                <div class="eyebrow" data-i18n>乐谱编辑</div>
+                <h2 data-i18n>添加音符</h2>
+              </div>
+            </div>
+          </div>
+          <!-- 这句会随选中位置变（app.js 的 updateAddTargetHint），所以不打标记，
+               由 app.js 在初始化和切换语言时自己写。 -->
+          <p class="card-hint" id="addTargetHint"></p>
+          <div
+            class="degree-pad"
+            aria-label="简谱音级快捷输入"
+            data-i18n-attrs="aria-label"
+          >
+            <button data-degree="1">1</button><button data-degree="2">2</button
+            ><button data-degree="3">3</button><button data-degree="4">4</button
+            ><button data-degree="5">5</button><button data-degree="6">6</button
+            ><button data-degree="7">7</button>
+          </div>
+          <div class="note-entry">
+            <label data-i18n-lead>音高<select id="newPitch"></select></label>
+            <label data-i18n-lead
+              >时值<select id="newDuration">
+                <option value="0.25">十六分音符</option>
+                <option value="0.5">八分音符</option>
+                <option value="0.75">附点八分音符</option>
+                <option value="1" selected>四分音符</option>
+                <option value="1.5">附点四分音符</option>
+                <option value="2">二分音符</option>
+                <option value="4">全音符</option>
+              </select></label
+            >
+          </div>
+          <button class="btn primary wide" id="addNote" data-i18n>＋ 添加音符</button>
+          <button class="btn ghost wide rest-button" id="addRest" data-i18n>
+            ＋ 添加休止符
+          </button>
+          <div class="selection-editor" id="selectionEditor" hidden>
+            <div class="selection-head">
+              <span class="mode-tag edit" data-i18n>修改</span>
+              <h3 data-i18n>编辑这个音</h3>
+              <span class="selection-chip" id="selectedIndex"></span>
+            </div>
+            <!-- 这句话里有加粗和键位提示，所以按「一段文字」拆成几截各标各的；
+                 整段换 textContent 会把 <b> 和 <kbd> 一起抹掉。 -->
+            <p class="selection-hint">
+              <span data-i18n>上面那块是</span><b data-i18n>新增</b
+              ><span data-i18n>音符；这里改的是</span
+              ><b data-i18n>已经写进谱面</b
+              ><span data-i18n>的那个音。改错了按</span><kbd>Ctrl</kbd>+<kbd>Z</kbd
+              ><span data-i18n>撤销。</span>
+            </p>
+            <label data-i18n-lead>音高<select id="editPitch"></select></label>
+            <label data-i18n-lead
+              >时值<select id="editDuration">
+                <option value="0.25">十六分音符</option>
+                <option value="0.5">八分音符</option>
+                <option value="0.75">附点八分音符</option>
+                <option value="1">四分音符</option>
+                <option value="1.5">附点四分音符</option>
+                <option value="2">二分音符</option>
+                <option value="4">全音符</option>
+              </select></label
+            >
+            <label class="lyric-input" data-i18n-lead
+              >歌词音节<input
+                id="editLyric"
+                placeholder="例如：月 / 亮"
+                maxlength="24"
+                data-i18n-attrs="placeholder"
+            /></label>
+            <label class="connection-toggle"
+              ><input type="checkbox" id="editTie" />
+              <span data-i18n>延音线：同音相连，延长时值</span></label
+            >
+            <label class="connection-toggle"
+              ><input type="checkbox" id="editSlur" />
+              <span data-i18n>连奏线：将相邻音连贯吹奏</span></label
+            >
+            <button class="btn danger wide" id="deleteNote" data-i18n>
+              删除选中音符
+            </button>
+          </div>
+        </section>
+
+        <section class="help-card">
+          <span>✦</span>
+          <div>
+            <b data-i18n>想让 AI 帮你转谱？</b>
+            <p data-i18n>
+              用“曲谱转哨笛洞洞谱”skill
+              识别图片，再把生成的曲谱导入这里继续编辑。
+            </p>
+          </div>
+        </section>
+      </aside>
+    </main>
+    <dialog
+      class="export-dialog io-dialog"
+      id="ioDialog"
+      aria-labelledby="ioTitle"
+    >
+      <form method="dialog">
+        <button
+          class="export-dialog-close"
+          aria-label="关闭"
+          data-i18n-attrs="aria-label"
+        >
+          ×
+        </button>
+      </form>
+      <div class="eyebrow" data-i18n>导入 / 导出</div>
+      <h2 id="ioTitle" data-i18n>把曲谱带进来，或者带出去</h2>
+      <div
+        class="io-tabs"
+        role="tablist"
+        aria-label="导入或导出"
+        data-i18n-attrs="aria-label"
+      >
+        <button
+          type="button"
+          role="tab"
+          id="ioTabImport"
+          aria-selected="true"
+          aria-controls="ioPaneImport"
+          data-i18n
+        >
+          导入
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="ioTabExport"
+          aria-selected="false"
+          aria-controls="ioPaneExport"
+          data-i18n
+        >
+          导出
+        </button>
+      </div>
+
+      <section
+        class="io-pane"
+        id="ioPaneImport"
+        role="tabpanel"
+        aria-labelledby="ioTabImport"
+      >
+        <div class="drop-zone" id="dropZone">
+          <b data-i18n>把文件拖到这里</b>
+          <small data-i18n>也可以直接拖到页面任意位置，或</small>
+          <label class="btn primary file-btn" data-i18n-lead
+            >选择文件…<input id="openFile" type="file"
+          /></label>
+        </div>
+        <p class="io-note" data-i18n>
+          导入会把文件里的音符读成本编辑器的曲谱，读不成的地方一律在谱面上方写明，
+          不会悄悄改掉。
+        </p>
+        <table class="format-table">
+          <caption data-i18n>
+            支持的格式
+          </caption>
+          <tbody id="importFormatList"></tbody>
+        </table>
+      </section>
+
+      <section
+        class="io-pane"
+        id="ioPaneExport"
+        role="tabpanel"
+        aria-labelledby="ioTabExport"
+        hidden
+      >
+        <p data-i18n>
+          导出会按右侧当前开启的图层排版，并显示标题、调式、拍号、速度和曲谱署名。
+          PDF 与 PNG 按同一张「完整长页」输出：整首曲子排在一页里，谱行左右两端顶到版心
+          边缘，不会在小节中间断开。标着「可逆」的格式会把曲谱数据嵌进文件，之后可以
+          通过导入还原并继续编辑。
+        </p>
+        <div class="export-options" id="exportOptions"></div>
+        <small id="exportLayersMessage" class="export-layers-message"></small>
+        <span id="exportStatus" role="status" aria-live="polite"></span>
+      </section>
+    </dialog>
+    <footer class="footer">
+      <span
+        >WhistleLoom ·
+        <b id="saveStatus" role="status" aria-live="polite"
+          >自动保存就绪</b
+        ></span
+      ><span data-i18n
+        >指法以标准六孔哨笛为基础；半孔与特殊替代指法请结合实际乐器校对。</span
+      >
+    </footer>
+    <!-- i18n.js 必须排在最前：它给出的 tr() 被后面每一份源码调用（界面文案要跟着
+         界面语言走），后加载就会出现「tr is not defined」。 -->
+    <script src="js/i18n.js"></script>
+    <script src="js/music.js"></script>
+    <script src="js/score-model.js"></script>
+    <!-- 导入边境层要在各编解码器之前：它们共用时值吸附 / 延音线降级 / 音域适配，
+         也共用 lastImportWarnings（每一条导入路径的提示都写在这里）。 -->
+    <script src="js/score-import.js"></script>
+    <script src="js/notation.js"></script>
+    <script src="js/examples.js"></script>
+    <script src="js/abc.js"></script>
+    <script src="js/musicxml.js"></script>
+    <script src="js/midi.js"></script>
+    <script src="js/score-export.js"></script>
+    <!-- 格式登记表要放在所有编解码器之后：它在顶层就把各格式的处理函数登记进表里。 -->
+    <script src="js/formats.js"></script>
+    <!-- 曲库接入层要在 abc.js 之后：它复用 abc.js 的 fracSuffix / abcModeOf / ABC_MODE_SUFFIX。 -->
+    <script src="js/tune-source.js"></script>
+    <!-- 离线曲库是纯数据，由 scripts/build-tune-library.mjs 生成，正式打开前先加载。 -->
+    <script src="js/tune-library.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>

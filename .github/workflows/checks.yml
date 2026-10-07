@@ -1,0 +1,26 @@
+# 每次 push / PR 跑一遍回归。项目零依赖，所以不需要 npm install 那一步。
+#
+# 这里刻意**不**跑 scripts/browser-probe.sh：它要 agent-browser 与一份 Chromium，
+# 在 CI 里装这一套的代价远大于收益。真浏览器回归留在本地按需跑，README 里写明了。
+name: checks
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # 先单独跑一遍 i18n 自检：它会连行号一起报出是哪个文件哪一行，
+      # 比在测试输出里翻堆栈容易看。这一步和下面测试套件里的是同一份逻辑。
+      - name: 界面文案自检（漏译 / 归一化撞车 / 未接线）
+        run: node scripts/check-i18n.mjs
+
+      - name: 单元测试（含曲谱契约、编解码往返、i18n 闸门、skill 文档一致性）
+        run: node --test tests/*.test.cjs

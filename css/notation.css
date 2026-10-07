@@ -1,0 +1,114 @@
+/* Shared notation style for screen, export and print */
+.score-system {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: nowrap;
+  width: max-content;
+  max-width: 100%;
+  min-width: 0;
+  padding: 13px 0 18px;
+  overflow: visible;
+}
+.measure {
+  margin: 0;
+}
+.number-value {
+  font-size: 25px;
+  line-height: 1.05;
+  padding-bottom: 4px;
+}
+.solfege-core {
+  position: relative;
+}
+.octave-dots {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font: 700 8px/1 var(--sans);
+  letter-spacing: 1px;
+  color: #485e4c;
+}
+.octave-dots.high {
+  top: -9px;
+}
+.octave-dots.low {
+  top: 22px;
+}
+.duration-extension {
+  display: inline-block;
+  margin-left: 3px;
+  font-size: 0.78em;
+  letter-spacing: -2px;
+  vertical-align: 0.08em;
+}
+.duration-dot {
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  margin-left: 2px;
+  border-radius: 50%;
+  background: currentColor;
+  vertical-align: 0.58em;
+}
+.tie-curve, .slur-curve {
+  fill: none;
+  stroke: #303930;
+  stroke-width: 1.5;
+  pointer-events: none;
+}
+.connection-overlay {
+  position: absolute;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+  z-index: 3;
+}
+.lyric-value {
+  font-size: 17px;
+}
+/* 单元格宽度 = 谱面步长。renderMeasure 会在 .measure 上写行内 --note-cell，
+   五线谱（按 SVG 坐标画）和简谱/歌词/指法（按 HTML 单元格排版）共用同一根尺子，
+   撑满纸面时四层才不会越往后偏得越多。缺少该变量时退回编辑器的基础步长。 */
+.event-cell {
+  width: var(--note-cell, 52px);
+  min-width: var(--note-cell, 52px);
+}
+.hole-svg {
+  width: 38px;
+  height: 108px;
+}
+.holes-layer {
+  min-height: 119px;
+}
+.numbers-layer,
+.lyrics-layer {
+  min-height: 43px;
+}
+.measure-label {
+  font-size: 11px;
+}
+.key-text {
+  font: 15px var(--serif);
+  fill: #303930;
+}
+.meter-text {
+  font: 12px var(--serif);
+  font-weight: 600;
+  fill: #303930;
+}
+.score-toolbar {
+  flex-wrap: wrap;
+}
+.event-cell.playing {
+  background: #fff0d8;
+  outline: 2px solid #d89b52;
+  outline-offset: -2px;
+}
+.score-note.playing .notehead {
+  stroke: #d08a52;
+  stroke-width: 2.8;
+  fill: #fff0d8;
+}
