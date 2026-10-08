@@ -84,16 +84,8 @@
 .export-paper .score-system.centered {
   justify-content: center;
 }
-@media print {
-  .paper-heading { display: block !important; text-align: center !important; }
-  .paper-heading > div { width: 100%; }
-  .paper-meta { display: block; margin: 6px 0 0; }
-  .paper-subtitle, .paper-credits { text-align: center; }
-  .paper-title { font-size: 28px !important; }
-}
 #exportStatus { display: block; min-height: 1.4em; margin-top: 12px; color: var(--green-dark); font-size: 12px; }
 .export-options button:disabled { opacity: .6; cursor: progress; }
-@media print { .export-dialog { display: none !important; } }
 
 /* ── 导入 / 导出面板（#ioDialog）────────────────────────────────────────────
    同一个 <dialog> 装两个页签：导入和导出。导入那张表要放「格式 · 后缀 · 说明」三列，
@@ -200,6 +192,5 @@ body.is-dropping::after {
 .export-card:hover { border-color: #9cad98; transform: translateY(-1px); }
 .export-card b { font-size: 14px; }
 .export-card small { color: var(--muted); font-size: 11px; line-height: 1.5; }
-.export-card.is-plain { background: #fbfaf5; }
 .export-layers-message { margin-top: 14px !important; }
 

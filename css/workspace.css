@@ -62,10 +62,11 @@
   margin: 0;
   gap: 7px;
 }
-/* 「速度」「原曲」「108 BPM」这几个都是不可拆的短标签，宁可让滑块变短，
+/* 「速度」「↺」「原曲 96」「108 BPM」这几个都是不可拆的短标签，宁可让滑块变短，
    也不要让它们竖着排成两行。 */
 .top-player .tempo-control > span,
 .top-player .original-tempo,
+.top-player .original-tempo-reset,
 .top-player .tempo-number {
   flex: none;
   white-space: nowrap;
@@ -76,19 +77,58 @@
   min-width: 48px;
   width: auto;
 }
+/* 原曲速度：一个可编辑的小框 + 一颗 ↺ 复位键。两者是一组，间距比行内其他控件紧一点，
+   让「原曲 96」看起来是一个整体，而不是两个各自独立的东西。 */
 .original-tempo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   border: 1px solid #dce4da;
   border-radius: 5px;
-  padding: 4px 7px;
+  padding: 3px 6px;
   background: #f4f7f2;
   color: #496a51;
   font-size: 10px;
   font-weight: 600;
   white-space: nowrap;
 }
-.original-tempo:hover {
-  background: #e7eee6;
+.original-tempo:hover { background: #e7eee6; }
+.original-tempo:focus-within {
+  border-color: #93aa95;
+  background: #fff;
+  box-shadow: 0 0 0 2px #e8efe8;
 }
+.original-tempo input {
+  width: 30px;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: 600 11px var(--mono);
+  color: #3d4a3e;
+  text-align: right;
+}
+.original-tempo input::-webkit-outer-spin-button,
+.original-tempo input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.original-tempo input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+.original-tempo-reset {
+  border: 1px solid #dce4da;
+  border-radius: 5px;
+  padding: 3px 6px;
+  background: #f4f7f2;
+  color: #496a51;
+  font-size: 11px;
+  line-height: 1;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.original-tempo-reset:hover { background: #e7eee6; }
 .top-actions {
   flex: 0 0 auto;
 }
@@ -164,7 +204,7 @@
    实测（Chromium，1440 宽）：中文一行占 1185px，英文占 1245px，
    再加上两侧各 20px 白边，一行要撑到 1285px 才够。所以 1280px 往下就改两行。
    改两行而不是给按钮排加横向滚动条，是因为滚动条做的第一件事就是把
-   「导出 / 打印」这种最要紧的按钮推出视野 —— 剩下的新建 / 导入 / 保存反而先露在外面，
+   「导出」这种最要紧的按钮推出视野 —— 剩下的新建 / 导入 / 保存反而先露在外面，
    轻重正好颠倒。两行则一个控件都不藏：
      第一行  品牌 ·················· 按钮排 · 语言切换器
      第二行  播放器（居中）
@@ -223,7 +263,7 @@
   /* 窄屏下品牌和语言切换器共用第一行，播放器和按钮排各占满一行：
        谱 WhistleLoom ········ 中文
        ▶ ♪ 有声 准备演奏 速度 原曲 —— 96 BPM 停止
-       新建 导入 保存到本机 导出 / 打印 */
+       新建 导入 保存到本机 导出 */
   .brand {
     order: 0;
   }

@@ -15,8 +15,8 @@
  *   importText: 只给「文本格式」面板用 —— 面板手里只有一段字符串，没有文件也没有字节。
  *               像 MusicXML 这种文件导入要字节（可能要解 .mxl）、粘贴却只能给文本的格式，
  *               两条路就是两个函数。没写 importText 时，面板沿用 import。
- *   export:    收到 (曲谱, { paper, print })，返回 { name, data, mime } —— data 是字符串或字节；
- *              返回空值表示「这个格式自己完成了保存动作」（PDF / 打印就是这种）
+ *   export:    收到 (曲谱, { paper })，返回 { name, data, mime } —— data 是字符串或字节；
+ *              返回空值表示「这个格式自己完成了保存动作」（PDF / PNG 直接把文件写出去）
  *   text:      true 表示这种格式本身是纯文本，会出现在「文本格式」面板的下拉里
  *   reversible: true 表示导出的文件里原样嵌了曲谱数据，再导入可以一字不差地还原
  */
@@ -104,15 +104,6 @@ const SCORE_FORMATS = [
     export: async (source, { paper }) => {
       await ScoreExport.exportPng(paper, source);
     },
-  },
-  {
-    id: "print",
-    label: "普通打印",
-    hint: "走浏览器自己的分页流程，适合直接出纸质谱",
-    extensions: [],
-    read: null,
-    print: true,
-    export: (source, { print }) => print(),
   },
 ];
 

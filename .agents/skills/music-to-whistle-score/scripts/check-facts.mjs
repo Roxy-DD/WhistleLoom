@@ -387,6 +387,39 @@ export function runChecks(repoRoot = DEFAULT_ROOT) {
     "参考清单里没提校验脚本",
   );
 
+  // ── 普通打印已整个删除 ──────────────────────────────────────────────────────
+  //
+  // 用户 2026-10-08 决定去掉「普通打印」（浏览器另存 PDF 那条路）—— 可逆 PDF 已经覆盖
+  // 了这个需求，多留一条会分叉出两套「导出后长什么样」的规则，之前「普通 PDF 里延音线
+  // 位置不对」正是这条岔路造成的（打印重排会动谱行、而连线覆盖层的坐标已写死）。
+  //
+  // 删干净意味着四样都不该留：登记表里的 print 条目、css/print.css 文件、
+  // index.html 对它的引用、以及 app.js 里的 print 事件监听。留一半比全留更糟 ——
+  // 死代码不会报错，只会在下一次改动时绊人。
+  const formatsSrc = raw("js/formats.js");
+  ok(
+    "formats.js · 登记表里没有 print 条目",
+    !/id\s*:\s*"print"/.test(formatsSrc),
+    "还留着 id 为 print 的格式条目",
+  );
+  ok(
+    "css/print.css · 文件已删除",
+    !fs.existsSync(path.join(repoRoot, "css/print.css")),
+    "css/print.css 还在 —— 普通打印既然删了，这份只服务它的样式表也该一起去掉",
+  );
+  const indexSrc = raw("index.html");
+  ok(
+    "index.html · 不再引用 print.css",
+    !indexSrc.includes("print.css"),
+    "index.html 里还挂着 print.css 的 <link>",
+  );
+  const appSrc = raw("app.js");
+  ok(
+    "app.js · 不再监听打印事件",
+    !/addEventListener\("beforeprint"/.test(appSrc) && !/addEventListener\("afterprint"/.test(appSrc),
+    "app.js 里还留着 beforeprint / afterprint 监听 —— 打印重排逻辑没删干净",
+  );
+
   return failures;
 }
 

@@ -57,7 +57,6 @@ const I18N_EN = {
   导入: "Import",
   导出: "Export",
   "保存到本机": "Save to disk",
-  "导出 / 打印": "Export / Print",
   "♪ 有声": "♪ Sound on",
   "♪ 静音": "♪ Muted",
   "切换为有声播放": "Switch to sound on",
@@ -72,7 +71,10 @@ const I18N_EN = {
   "音符 {index} / {total}": "Note {index} / {total}",
   速度: "Tempo",
   原曲: "Original",
-  "恢复导入曲谱记录的原曲速度": "Restore the tempo recorded in the imported score",
+  "把当前速度调回下面「原曲」框里记的原曲速度": "Set the tempo back to the original tempo in the field below",
+  "回到原曲速度": "Reset to original tempo",
+  "录谱时查到的原曲速度写这里；谱头会记下它，点左边的 ↺ 就能一秒跳回来": "Write down the original song's tempo here while transcribing; the score header records it, and the ↺ button jumps back to it",
+  "原曲速度，每分钟四分音符数": "Original tempo in quarter notes per minute",
   "曲速滑杆": "Tempo slider",
   "也可以直接输入数字，或用上下方向键微调": "You can also type a number, or nudge it with the arrow keys",
   "曲速，每分钟四分音符数": "Tempo in quarter notes per minute",
@@ -277,7 +279,6 @@ const I18N_EN = {
   "自动保存不可用，请使用“保存到本机”备份": "Auto-save unavailable — use “Save to disk” to keep a backup",
   "已保存曲谱文件": "Score file saved",
   保存失败: "Save failed",
-  "正在准备打印…": "Preparing to print…",
   "正在排版并生成文件…": "Laying out and generating the file…",
   "。之后可以通过导入还原并继续编辑。": ". You can import it back later to restore and keep editing.",
   "导出失败。": "Export failed.",
@@ -409,8 +410,6 @@ const I18N_EN = {
   "可逆 PNG": "Reversible PNG",
   "整曲长图，同样把曲谱数据嵌进文件里；导入即可还原继续编辑":
     "A long image of the whole tune, with the score data embedded; import it to restore and keep editing",
-  普通打印: "Plain print",
-  "走浏览器自己的分页流程，适合直接出纸质谱": "Uses the browser's own pagination — good for printing onto paper",
   "认不出「{name}」是什么格式。支持的格式有：": "Cannot tell what format “{name}” is. Supported formats are: ",
   "这个格式不支持导出。": "This format does not support export.",
   "已导出 {name}": "Exported {name}",
@@ -444,13 +443,13 @@ const I18N_EN = {
   "这次导出会带上：{layers}。": "This export will include: {layers}.",
   "四层图层现在都是关着的，导出的谱面会是空白 —— 想留下内容，请先在右侧打开至少一层。":
     "All four layers are off, so the exported score would be blank — switch on at least one layer on the right to keep anything.",
-  "曲谱太长，超出浏览器单张画布的安全尺寸；请用普通打印按纸张分页输出。":
-    "The score is too long for a single browser canvas; use plain print to paginate onto paper.",
-  "浏览器无法创建导出画布，请使用普通打印输出。": "The browser could not create the export canvas; use plain print instead.",
+  "曲谱太长，超出浏览器单张画布的安全尺寸；请改用可逆 PDF 导出。":
+    "The score is too long for a single browser canvas; export a reversible PDF instead.",
+  "浏览器无法创建导出画布，导出失败。": "The browser could not create the export canvas, so the export failed.",
   "生成图像失败": "Image generation failed",
   曲谱: "Score",
-  "曲谱太长，超出 PDF 单页尺寸上限；请改用 PNG 导出或普通打印分页输出。":
-    "The score is too long for a single PDF page; export PNG or use plain print to paginate.",
+  "曲谱太长，超出 PDF 单页尺寸上限；请改用 PNG 导出。":
+    "The score is too long for a single PDF page; export PNG instead.",
   "曲谱还没有音符，无法导出。": "The score has no notes yet, so there is nothing to export.",
 
   // ── 唱名外的零碎 ──────────────────────────────────────────────────────────

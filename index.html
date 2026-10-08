@@ -21,7 +21,6 @@
     <link rel="stylesheet" href="css/base.css" />
     <link rel="stylesheet" href="css/workspace.css" />
     <link rel="stylesheet" href="css/notation.css" />
-    <link rel="stylesheet" href="css/print.css" />
     <link rel="stylesheet" href="css/export.css" />
   </head>
   <body>
@@ -60,16 +59,32 @@
           <b id="playStatus">准备演奏</b><span id="position">—</span>
         </div>
         <div class="tempo-control">
-          <span data-i18n>速度</span
-          ><button
-            class="original-tempo"
+          <button
+            class="original-tempo-reset"
             id="originalTempo"
             type="button"
-            title="恢复导入曲谱记录的原曲速度"
-            data-i18n-attrs="title"
-            data-i18n
+            title="把当前速度调回下面「原曲」框里记的原曲速度"
+            aria-label="回到原曲速度"
+            data-i18n-attrs="title aria-label"
           >
-            原曲</button
+            ↺</button
+          ><label
+            class="original-tempo"
+            title="录谱时查到的原曲速度写这里；谱头会记下它，点左边的 ↺ 就能一秒跳回来"
+            data-i18n-attrs="title"
+            ><span data-i18n>原曲</span
+            ><input
+              id="originalTempoNumber"
+              type="number"
+              min="20"
+              max="400"
+              step="1"
+              value="96"
+              inputmode="numeric"
+              aria-label="原曲速度，每分钟四分音符数"
+              data-i18n-attrs="aria-label"
+          /></label>
+          <span data-i18n>速度</span
           ><input
             id="tempo"
             type="range"
@@ -101,7 +116,7 @@
         <button class="btn ghost" id="newScore" data-i18n>新建</button>
         <button class="btn ghost" id="openImport" data-i18n>导入</button>
         <button class="btn ghost" id="saveScore" data-i18n>保存到本机</button>
-        <button class="btn primary" id="openExport" data-i18n>导出 / 打印</button>
+        <button class="btn primary" id="openExport" data-i18n>导出</button>
       </div>
       <!-- 语言下拉的选项由 app.js 从 I18N_LANGS 生成（语言名用它自己的语言写）。
            不另加图标的理由：这几个字就是它自己的说明，多挂一个地球/齿轮反而不清楚。

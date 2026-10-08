@@ -136,9 +136,6 @@ function regroup(events = score.events, meter = $("meter").value) {
   if (bar.length) bars.push(bar);
   return bars;
 }
-// 打印 / 导出用的内容宽度：A4 横向 297mm − 左右各 10mm 页边距 − 谱面左右内边距，
-// 换算成 CSS 像素约 1000px，比编辑器被侧栏挤窄的栏宽（约 620px）宽得多。
-const PRINT_CONTENT_WIDTH = 1004;
 // 谱面四层分别由侧栏哪个开关管，一处声明、渲染与导出共用。
 const LAYER_TOGGLES = [
   ["showStaff", ".staff-layer", "五线谱"],
@@ -189,7 +186,7 @@ function renderExportCards() {
   for (const format of SCORE_FORMATS.filter((item) => item.export)) {
     const card = document.createElement("button");
     card.type = "button";
-    card.className = "export-card" + (format.print ? " is-plain" : "");
+    card.className = "export-card";
     card.dataset.format = format.id;
     card.innerHTML =
       `<b>${escapeHtml(tr(format.label))}</b><small>${escapeHtml(tr(format.hint))}</small>`;
@@ -230,7 +227,7 @@ function updateExportLayersMessage() {
     ? tr("这次导出会带上：{layers}。", { layers: on.join("、") })
     : tr("四层图层现在都是关着的，导出的谱面会是空白 —— 想留下内容，请先在右侧打开至少一层。");
 }
-// 按指定的内容宽度把曲谱重新折行渲染。导出 / 打印都要用宽页面重新折行，
+// 按指定的内容宽度把曲谱重新折行渲染。导出要用宽页面重新折行，
 // 直接搬运编辑器窄栏的 DOM 会让每一行只装得下一个小节。
 function layoutScoreInto(view, contentWidth, source = score, options = {}) {
   view.style.zoom = "1";
@@ -247,10 +244,24 @@ function layoutScoreInto(view, contentWidth, source = score, options = {}) {
     setRenderKeys(null);
   }
   applyLayerVisibility(view);
+  // 延音线 / 连奏线是**覆盖层**（renderConnections 用 getBoundingClientRect 量出
+  // 符头与唱名的真实像素位置，再画一层绝对定位的 svg 盖上去）。上面那句
+  // `view.innerHTML = …` 会把旧的覆盖层连同旧谱面一起抹掉，所以重建完必须补画一次。
+  //
+  // 这里漏调过一次，症状是「屏幕上看得到连线，导出的图里没有」—— 重建之后没人再画线。
+  // CSS 里那句 `.tie-curve { stroke: #111 }` 一直是白写的：根本没有 path 元素可上色。
+  //
+  // ★ 但**元素不在文档里时画不了**：导出走 cleanClone（cloneNode 出来的游离节点），
+  // 那时 getBoundingClientRect 全是 0，renderConnections 内部会 continue、一条不画。
+  // 所以这里只负责「已经在文档里」的情况；游离节点交给调用方在插入文档后再调一次
+  // （见 js/score-export.js 的 staging 之后）。返回值让调用方知道到底画出来没有，
+  // 不必靠猜 —— 早先静默失败正是「PNG 导出丢延音线」查不出来原因的地方。
+  const hasLayout = Boolean(view.isConnected && view.getClientRects().length);
+  return hasLayout ? renderConnections(view, source.events) : 0;
 }
-// 打印用的内容宽度。打印时纸张宽度与屏幕无关，必须显式指定，不能量 view.clientWidth。
+// 编辑区里谱面的折行宽度：跟着编辑器栏宽走（除回缩放）。导出另走固定的版心宽度，
+// 不经过这里。
 function scoreLayoutWidth(view) {
-  if (window.matchMedia?.("print").matches) return PRINT_CONTENT_WIDTH;
   return Math.max(280, (view.clientWidth || 900) / scoreZoom);
 }
 // 谱头那一行元信息：原调、主音与调式、拍号、速度、哨笛的调。
@@ -291,14 +302,10 @@ function render() {
   if (!score.events.length) {
     view.innerHTML = "";
   } else {
-    // 打印时纸张比编辑器栏宽得多，折行宽度必须按纸张算，否则整谱会挤在左边、
-    // 每行只放一个小节，白白多出好几页。打印还要把音符步长撑开让各行左右齐平。
-    const printing = Boolean(window.matchMedia?.("print").matches);
+    // 编辑区不撑满：栏宽本来就窄，撑开反而把节奏分组读乱。导出才按版心撑满。
     setRenderKeys(score);
     try {
-      view.innerHTML = scoreSystemsMarkup(bars, scoreLayoutWidth(view), {
-        stretch: printing,
-      });
+      view.innerHTML = scoreSystemsMarkup(bars, scoreLayoutWidth(view));
     } finally {
       setRenderKeys(null);
     }
@@ -632,7 +639,7 @@ const TEMPO_MAX = SCORE_TEMPO_MAX;
 function clampTempo(value) {
   return Math.round(Math.min(TEMPO_MAX, Math.max(TEMPO_MIN, value)));
 }
-// 把 score.tempo 同步到滑杆和数字框上。这两个控件写的是同一个值，必须一起改。
+// 把 score.tempo 同步到滑杆和数字框上。这几个控件写的是同一个值，必须一起改。
 // 滑杆的行程要同时罩住「原曲速度」和「当前速度」：导入的曲子可能记着 280 BPM，
 // 数字框也可能被手输成 300。范围不撑开的话，滑块会顶在刻度的尽头装作那是 300 ——
 // 显示的和实际生效的对不上，比不显示还糟。
@@ -644,13 +651,29 @@ function syncTempoControls() {
   slider.max = String(Math.max(240, original, tempo));
   slider.value = String(tempo);
   $("tempoNumber").value = String(tempo);
+  // 「原曲」框是 score.originalTempo 的唯一编辑入口（导入的曲子由 importer 写好，
+  // 手录的曲子由用户自己填）。同步时不能覆盖正在编辑的那个值 —— 用户敲到一半
+  // 只显示 "1"、而此刻 score 还是 96，直接写回 96 会把他的输入吞掉。
+  const originalBox = $("originalTempoNumber");
+  if (originalBox && document.activeElement !== originalBox)
+    originalBox.value = String(original);
 }
-// 改曲速的唯一入口：滑杆拖动、数字框输入、「原曲」按钮全走这里。
-// 三个入口各改各的，就是同步 bug 的温床 —— 改一处漏两处，滑杆和数字框立刻互相矛盾。
+// 改曲速的唯一入口：滑杆拖动、数字框输入、「原曲」框输入、↺ 按钮全走这里。
+// 几个入口各改各的，就是同步 bug 的温床 —— 改一处漏两处，滑杆和数字框立刻互相矛盾。
 function applyTempo(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return;
   score.tempo = clampTempo(number);
+  syncTempoControls();
+  updatePaperMeta();
+  saveLocal();
+}
+// 改「原曲速度」的唯一入口。它不影响播放，只影响谱头那行「（原速 … BPM）」和 ↺ 按钮
+// 的落点，所以走的是另一条更轻的路：不用重排谱面（updatePaperMeta 只动一行文本）。
+function applyOriginalTempo(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return;
+  score.originalTempo = clampTempo(number);
   syncTempoControls();
   updatePaperMeta();
   saveLocal();
@@ -942,6 +965,21 @@ function wire() {
     const value = Number(raw);
     applyTempo(Number.isFinite(value) ? value : score.tempo);
   });
+  // 「原曲」框：录谱时自己查到原曲速度就填这里，谱头会记下来。和「当前速度」框一样，
+  // 只在输入的内容已经是个合法值时才落地 —— 半截数字（""、"1"）强行 clamp 会把用户
+  // 想敲的 132 改写成 20，光标还会乱跳。
+  $("originalTempoNumber").addEventListener("input", () => {
+    const raw = $("originalTempoNumber").value.trim();
+    const value = Number(raw);
+    if (!raw || !Number.isFinite(value) || value < TEMPO_MIN) return;
+    applyOriginalTempo(value);
+  });
+  $("originalTempoNumber").addEventListener("change", () => {
+    const raw = $("originalTempoNumber").value.trim();
+    if (!raw) return applyOriginalTempo(score.originalTempo);
+    const value = Number(raw);
+    applyOriginalTempo(Number.isFinite(value) ? value : score.originalTempo);
+  });
   $("originalTempo").addEventListener("click", () => {
     applyTempo(Number(score.originalTempo) || 96);
     // 原曲速度和「原速 xx BPM」是同一个数的两种说法，点完它就该自洽：
@@ -1136,14 +1174,10 @@ function wire() {
     const id = card.dataset.format,
       status = $("exportStatus");
     card.disabled = true;
-    status.textContent = id === "print" ? tr("正在准备打印…") : tr("正在排版并生成文件…");
+    status.textContent = tr("正在排版并生成文件…");
     try {
       const message = await exportScoreWith(id, structuredClone(score), {
         paper: document.querySelector(".score-paper"),
-        print: () => {
-          $("ioDialog").close();
-          printScore();
-        },
       });
       status.textContent = message
         ? message +
@@ -1277,41 +1311,6 @@ function wire() {
     clearTimeout(window._scoreResize);
     window._scoreResize = setTimeout(render, 100);
   });
-  // 「普通打印」走浏览器自己的打印流程。两件事必须在打印前处理：
-  // ① 浏览器用 document.title 作为「打印成 PDF」的建议文件名，所以要临时换成曲名；
-  // ② 按纸张宽度重新折行（编辑器被侧栏挤到约 620px，纸张有约 1000px），否则整谱会
-  //    挤在左边、每行只放一个小节，白白多出好几页。
-  // 点击时就同步改好，不赌 beforeprint 的触发时机；事件里再兜一层（Ctrl+P 走那条路）。
-  let printLayoutActive = false,
-    titleBeforePrint = "";
-  function enterPrintLayout() {
-    if (printLayoutActive) return;
-    printLayoutActive = true;
-    titleBeforePrint = document.title;
-    document.title =
-      String(score.title || tr("未命名曲谱")).trim() || tr("未命名曲谱");
-    layoutScoreInto($("scoreView"), PRINT_CONTENT_WIDTH, score, {
-      stretch: true,
-    });
-  }
-  function leavePrintLayout() {
-    if (!printLayoutActive) return;
-    printLayoutActive = false;
-    if (titleBeforePrint) document.title = titleBeforePrint;
-    titleBeforePrint = "";
-    render();
-  }
-  function printScore() {
-    enterPrintLayout();
-    window.print();
-  }
-  window.addEventListener("beforeprint", enterPrintLayout);
-  window.addEventListener("afterprint", leavePrintLayout);
-  window
-    .matchMedia("print")
-    .addEventListener?.("change", (event) =>
-      event.matches ? enterPrintLayout() : leavePrintLayout(),
-    );
   document.addEventListener("pointerdown", (event) => {
     if (!event.target.closest?.("#scoreView, #accessibleScoreList"))
       spacePlaybackArmed = false;
@@ -1694,6 +1693,21 @@ function startPlay() {
       }
     });
     if (ev.pitch != null && !tiedFromPrevious) {
+      // 这一颗音实际要响多久 = 它自己 + 后面所有连在它身上的延音线音。
+      //
+      // 必须先算出来再排包络：延音线的写法是「前一颗短音 + 后一颗长音」，例如
+      // 「敲」= 八分音符（0.5 拍）用延音线连到全音符（4 拍）。发声的是前一颗，
+      // 所以它得替整条链响满 4.5 拍。旧代码把衰减排在 `secs`（自己那 0.5 拍）之后，
+      // 于是音量在 0.27 秒就掉到听不见，后面四拍全是死的 —— 用户听到的就是
+      // 「演奏时没有延长声」。单颗长音之所以正常，只是因为它的 secs 本来就是全长。
+      const tempoBpm = Number(score.tempo) || 96;
+      let tiedDuration = ev.duration || 1;
+      for (let next = i; score.events[next]?.tieToNext; next++) {
+        const following = score.events[next + 1];
+        if (!following || following.pitch !== ev.pitch) break;
+        tiedDuration += following.duration || 1;
+      }
+      const soundSecs = Math.max(secs, (tiedDuration * 60) / tempoBpm);
       activeOscillator = audioCtx.createOscillator();
       activeGain = audioCtx.createGain();
       activeOscillator.type = "sine";
@@ -1706,7 +1720,7 @@ function startPlay() {
       );
       activeGain.gain.setTargetAtTime(
         0.0001,
-        audioCtx.currentTime + Math.max(0.04, secs - 0.04),
+        audioCtx.currentTime + Math.max(0.04, soundSecs - 0.04),
         0.035,
       );
       activeOscillator.connect(activeGain).connect(masterGain);
@@ -1718,15 +1732,7 @@ function startPlay() {
         }
       };
       activeOscillator.start();
-      let tiedDuration = ev.duration || 1;
-      for (let next = i; score.events[next]?.tieToNext; next++) {
-        const following = score.events[next + 1];
-        if (!following || following.pitch !== ev.pitch) break;
-        tiedDuration += following.duration || 1;
-      }
-      activeOscillator.stop(
-        audioCtx.currentTime + Math.max(secs, (tiedDuration * 60) / (Number(score.tempo) || 96)) + 0.04,
-      );
+      activeOscillator.stop(audioCtx.currentTime + soundSecs + 0.04);
     }
     playTimer = setTimeout(() => {
       if (token !== playToken) return;

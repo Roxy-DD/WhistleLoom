@@ -41,7 +41,7 @@
       "generateMidi", "parseMidiFile", "generateAbc", "parseAbc", "ScoreExport",
       "lastImportWarnings", "currentScore", "updateExportLayersMessage", "showImportNotice",
       "LAYER_TOGGLES", "sanitizeTies", "fitMelodyOctaves", "nearestScoreDuration",
-      "updatePlayabilityNotice",
+      "updatePlayabilityNotice", "startPlay", "layoutScoreInto",
     ];
     const missing = names.filter((n) => has(n) === "undefined");
     if (missing.length) throw new Error("缺 " + missing.join(","));
@@ -413,21 +413,45 @@
     if (score.tempo < Number(slider.min) || score.tempo > Number(slider.max))
       throw new Error(`当前 ${score.tempo} 掉出滑杆行程 ${slider.min}–${slider.max}`);
 
-    // ⑥ 「原曲」按钮把三处一起复位，谱头那句「（原速 …）」也该自己消失
-    score.originalTempo = 96;
+    // ⑥ 「原曲」框的设置能力：录谱时要能亲手写下原曲速度（旧版只能靠导入带进来，
+    //    手录的新谱永远是 96）。写完谱头要标「（原速 …）」，↺ 按钮要能一秒跳回去。
+    const originalField = document.getElementById("originalTempoNumber");
+    if (!originalField) throw new Error("没有「原曲速度」输入框");
+    if (originalField.type !== "number")
+      throw new Error("原曲速度框不是 number 类型：" + originalField.type);
+    const setOriginal = (v) => {
+      originalField.value = v;
+      originalField.dispatchEvent(new Event("input", { bubbles: true }));
+      originalField.dispatchEvent(new Event("change", { bubbles: true }));
+    };
+    setOriginal("132");
+    if (score.originalTempo !== 132)
+      throw new Error("原曲速度没写进曲谱：" + score.originalTempo);
+    // 框里逐字输入的中途值不能被吞掉（和「当前速度」框同一条规矩）
+    originalField.value = "1";
+    originalField.dispatchEvent(new Event("input", { bubbles: true }));
+    if (originalField.value !== "1")
+      throw new Error("原曲框的半截输入被改写了：" + originalField.value);
+
     slide("150");
-    if (!/原速 96 BPM/.test(head())) throw new Error("改了曲速后谱头没标出原速：" + head());
+    if (!/原速 132 BPM/.test(head())) throw new Error("谱头没标出新的原速：" + head());
     document.getElementById("originalTempo").click();
-    if (score.tempo !== 96 || Number(field.value) !== 96 || Number(slider.value) !== 96)
+    if (score.tempo !== 132 || Number(field.value) !== 132 || Number(slider.value) !== 132)
       throw new Error(
-        `原曲按钮没复位三处：曲谱 ${score.tempo}，框 ${field.value}，滑杆 ${slider.value}`,
+        `↺ 按钮没跳回原速：曲谱 ${score.tempo}，框 ${field.value}，滑杆 ${slider.value}`,
       );
     if (/原速/.test(head())) throw new Error("已回到原速，谱头还写着「原速」：" + head());
 
-    // ⑦ 自动存档必须能被自己读回来。这里曾经有一条会丢整份曲谱的路径：数字框允许 400，
+    // ⑦ 超上限的原曲速度也要被收回，否则存档校验会把它判成损坏
+    setOriginal("900");
+    if (score.originalTempo !== 400)
+      throw new Error("原曲速度超上限没收回：" + score.originalTempo);
+
+    // ⑧ 自动存档必须能被自己读回来。这里曾经有一条会丢整份曲谱的路径：数字框允许 400，
     //    契约层却只收到 320 —— 用户敲 400，自动存档写下 400，下次打开时校验抛错，整份
     //    曲谱被判成「存档损坏」清掉。所以这条走的就是那条路：存下去，再按打开时的读法读回来。
     //    （两端现在读同一组常量，这一条是为了防止它们再次分叉。）
+    setOriginal("96");
     type("400");
     leave();
     if (score.tempo !== 400) throw new Error("没能把曲速设成 400：" + score.tempo);
@@ -541,6 +565,233 @@
     applyScoreToForm();
     if (!panel.hidden) throw new Error("还原后提示条还挂着：" + noticeText());
     return "默认不误报；C 调谱抓出 2 个音并标红；移到 D 调后自动收起";
+  });
+
+  await step("plain-print-removed", () => {
+    // 「普通打印」这条导出路径已删除（用户 2026-10-08 决定：可逆 PDF 已覆盖这个需求）。
+    // 删掉的不只是一个按钮 —— 为了它曾经散布着：登记表里的 print 条目、导出点击回调里的
+    // print()、状态文案里的 id === "print" 分支、app.js 里一整段 beforeprint / afterprint
+    // 重排逻辑、以及整整一个 css/print.css。半途而废的「删除」最容易留下死代码：
+    // 按钮没了、监听还在，或者样式表还挂在 index.html 上，谁也说不清它还在不在生效。
+    //
+    // 这条把「删干净」钉住，四样都要查：登记表、界面卡片、样式表引用、打印事件监听。
+    if (SCORE_FORMATS.some((f) => f.id === "print"))
+      throw new Error("SCORE_FORMATS 里还有 print 条目 —— 登记表没删干净");
+    if (document.querySelector('#exportOptions [data-format="print"]'))
+      throw new Error("导出面板上还挂着「普通打印」卡片");
+    if ([...document.styleSheets].some((s) => (s.href || "").includes("print.css")))
+      throw new Error("index.html 还引用着 css/print.css —— 样式表没解绑");
+    // 打印前重排那段逻辑删干净的话，beforeprint 派发出去应当什么都不发生：
+    // 谱面 DOM 不该被重建（用同一个节点还连在文档里来判断）。
+    const view = document.getElementById("scoreView");
+    const before = view.querySelector(".score-system")?.firstElementChild;
+    window.dispatchEvent(new Event("beforeprint"));
+    const after = view.querySelector(".score-system")?.firstElementChild;
+    if (before && after && before !== after)
+      throw new Error("beforeprint 竟然重排了谱面 —— 打印重排逻辑没删干净");
+    window.dispatchEvent(new Event("afterprint"));
+    return `${SCORE_FORMATS.length} 条格式里没有 print；无导出卡片、无 print.css 引用、无打印重排`;
+  });
+
+  await step("export-connections", () => {
+    // 「PNG / PDF 导出没有延音线」的根因**不是**打印那条路，而是导出这条：
+    //   导出走 cleanClone() → staging() 两步。连线是 renderConnections() 用
+    //   getBoundingClientRect() 量出符头/唱名的真实像素位置后画的绝对定位 <svg>；
+    //   而 cloneNode 出来的节点游离在文档之外，量的每一行都是「宽 0 高 0」，
+    //   renderConnections 内部 `if (!width || !height) continue` ——
+    //   **一条线都不画，还一声不吭**。
+    //
+    // 所以这条断言不能只看「有没有覆盖层」，必须真的把导出前两步跑一遍，
+    // 并且和编辑态的条数**对齐**：只要条数对不上，就说明这条路径又断了一环。
+    if (!window.ScoreExport?.cleanClone || !window.ScoreExport?.staging)
+      throw new Error("ScoreExport 上没有导出 cleanClone / staging，无法验证导出路径");
+
+    const view = document.getElementById("scoreView");
+    const curveCountIn = (root) =>
+      root.querySelectorAll(
+        "svg.connection-overlay .tie-curve, svg.connection-overlay .slur-curve",
+      ).length;
+
+    const backup = { events: score.events, tonic: score.tonic };
+    // 造两处必须画出连线的记号：延音线（同音高相连）与连奏线（不同音高相连）。
+    score.events = [
+      { pitch: 62, duration: 1, tieToNext: true },
+      { pitch: 62, duration: 1 },
+      { pitch: 64, duration: 1, slurToNext: true },
+      { pitch: 65, duration: 1 },
+    ];
+    applyScoreToForm();
+    render();
+    const liveCurves = curveCountIn(view);
+    if (liveCurves < 2)
+      throw new Error(`编辑态下该有 2 条连线，实际 ${liveCurves} 条 —— 前置条件就不成立`);
+
+    // 真实导出前两步。cleanClone 的第二个参数是「要导出的那份曲谱」。
+    const paper = document.querySelector(".score-paper");
+    if (!paper) throw new Error("找不到 .score-paper，导出无从下手");
+    const clone = window.ScoreExport.cleanClone(paper, score, 1004);
+    if (clone.isConnected)
+      throw new Error("cleanClone 出来的应该是游离节点，这里却已经连上文档了");
+    const host = window.ScoreExport.staging(clone, score);
+    try {
+      const staged = clone.querySelector("#scoreView");
+      if (!staged) throw new Error("暂存后的克隆体里没有 #scoreView");
+      // 尺寸必须先正常，否则「没有线」可能只是布局本身没跑。
+      if (!staged.getBoundingClientRect().width)
+        throw new Error("暂存后的克隆体量出来宽度是 0，布局没生效");
+      const stagedCurves = curveCountIn(staged);
+      if (stagedCurves === 0)
+        throw new Error(
+          "导出路径一条连线都没有（这正是「PNG 导出丢延音线」的病症）：" +
+            "连线覆盖层必须在 clone 进了文档之后再画，画在游离节点上量不到尺寸，会静默跳过",
+        );
+      // ★ 与编辑态逐条对齐：数量不同说明多画或漏画，不能只看「非零」。
+      if (stagedCurves !== liveCurves)
+        throw new Error(
+          `导出路径画出 ${stagedCurves} 条连线，编辑态是 ${liveCurves} 条 —— 两者必须一致`,
+        );
+      for (const overlay of staged.querySelectorAll("svg.connection-overlay"))
+        if (!overlay.closest(".score-system"))
+          throw new Error("导出路径的覆盖层没挂在任何谱行上（坐标会整体飘掉）");
+
+      // ★ 光「条数对」还不够 —— 还得「画在对的位置上」。
+      //
+      // 连线是 renderConnections() 量完符头/唱名的像素位置后把 d 写死的覆盖层。
+      // 一旦有个环节把谱行重新排版、却没重画连线，弧就会与音符错开 ——
+      // 条数照样对，图却错了。（这种情况真发生过：print.css 里一条
+      // `justify-content: space-between` 把定宽的小节推开，弧留在原地，
+      // 打印出来就是「延音线位置不对」。打印这条路后来整个删掉了，
+      // 但同类的「排版动了、弧没跟着动」在导出路径上同样要挡住。）
+      //
+      // 判据：每条弧的两个**端点**，必须落在它该连的那颗符头／唱名的水平范围内，
+      // 或落在谱行右缘（跨行延音线故意画到 width-5 的断口）。
+      //
+      // ★ 取端点不能只抓前两个数字：二次贝塞尔的 d 是 `M x1 y1 Q cx cy x2 y2`，
+      // 中间那对 (cx, cy) 是控制点 —— 它就是弧的峰顶，天生落在两颗音**中间**，
+      // 拿它当端点比对必然「不在任何符头上」。端点只有第 1 对（M）与第 3 对（Q 终点）。
+      const misaligned = (() => {
+        const sys = staged.querySelector(".score-system");
+        if (!sys) return "暂存的谱面里找不到谱行";
+        const sr = sys.getBoundingClientRect();
+        const endpointsOf = (path) => {
+          const d = path.getAttribute("d") || "";
+          const nums = [...d.matchAll(/-?[\d.]+/g)].map((m) => Number(m[0]));
+          return nums.length >= 5 ? [nums[0], nums[4]] : nums.length ? [nums[0]] : [];
+        };
+        const spans = (sel) =>
+          [...sys.querySelectorAll(sel)].map((n) => {
+            const r = n.getBoundingClientRect();
+            return { left: r.left - sr.left, right: r.right - sr.left };
+          });
+        const heads = spans(".staff-layer .score-note .notehead");
+        const numbers = spans(".numbers-layer .event-cell .number-value");
+        const all = [...heads, ...numbers];
+        const sysWidth = sys.scrollWidth;
+        const tol = 6;
+        for (const path of sys.querySelectorAll(".connection-overlay path")) {
+          for (const x of endpointsOf(path)) {
+            const onNote = all.some((n) => x >= n.left - tol && x <= n.right + tol);
+            const dangling = Math.abs(x - (sysWidth - 5)) <= tol;
+            if (!onNote && !dangling)
+              return `弧端点 x=${x.toFixed(1)} 既不落在任何符头／唱名上，也不在谱行右缘（谱行宽 ${sysWidth}）` +
+                `\n  d=${path.getAttribute("d")}` +
+                `\n  符头=${heads.map((n) => n.left.toFixed(0) + "-" + n.right.toFixed(0)).join(" ")}` +
+                `\n  唱名=${numbers.map((n) => n.left.toFixed(0) + "-" + n.right.toFixed(0)).join(" ")}`;
+          }
+        }
+        return null;
+      })();
+      if (misaligned) throw new Error(misaligned + " —— 导出图里的弧与音符错开了");
+    } finally {
+      host.remove();
+      score.events = backup.events;
+      score.tonic = backup.tonic;
+      applyScoreToForm();
+      render();
+    }
+    return `编辑态与导出路径都是 ${liveCurves} 条连线，且覆盖层各自挂在所属谱行上`;
+  });
+
+  await step("tie-playback-envelope", () => {
+    // 延音线的写法是「前一颗短音 + 后一颗长音」，发声的是前一颗 —— 所以它得替整条链
+    // 响满全程。旧代码把音量衰减排在 `secs`（自己那一格）之后，例如「八分音符(0.5拍)
+    // 连到全音符(4拍)」的前一颗只响 0.27 秒就衰减到听不见，后面四拍全哑 ——
+    // 用户听到的就是「演奏时没有延长声」，而单颗长音恰好正常（它的 secs 本来就是全长）。
+    //
+    // 这里不真放声音，而是拦下 AudioContext 记录调度参数：起音时刻、衰减起始时刻、
+    // 停止时刻。三者对齐到「整条链的时长」才算过。
+    const backup = { events: score.events, tempo: score.tempo };
+    const RealCtx = window.AudioContext || window.webkitAudioContext;
+    if (!RealCtx) throw new Error("环境里没有 AudioContext，测不了");
+    if (typeof startPlay !== "function") throw new Error("找不到播放入口 startPlay");
+    const calls = [];
+    const fakeParam = () => ({
+      value: 0,
+      setValueAtTime: () => {},
+      exponentialRampToValueAtTime: () => {},
+      setTargetAtTime: (v, t) => calls.push(["decay", t]),
+      cancelScheduledValues: () => {},
+      linearRampToValueAtTime: () => {},
+    });
+    const fakeCtx = {
+      currentTime: 100,
+      state: "running",
+      resume: () => Promise.resolve(),
+      destination: {},
+      createGain: () => ({ gain: fakeParam(), connect: (x) => x }),
+      createOscillator: () => ({
+        frequency: { value: 0 },
+        type: "sine",
+        connect: (x) => x,
+        start: () => {},
+        stop: (t) => calls.push(["stop", t]),
+        onended: null,
+      }),
+    };
+    window.AudioContext = function () {
+      return fakeCtx;
+    };
+    window.webkitAudioContext = window.AudioContext;
+    try {
+      score.tempo = 60; // 一拍一秒，算起来直观
+      score.events = [
+        { pitch: 62, duration: 0.5, tieToNext: true },
+        { pitch: 62, duration: 4 },
+      ];
+      applyScoreToForm();
+      render();
+      calls.length = 0;
+      startPlay();
+      // 立刻停止，别真播下去（stopPlay 会清掉定时器和活动振荡器）。
+      stopPlay();
+      const decay = calls.find(([k]) => k === "decay");
+      const stop = calls.find(([k]) => k === "stop");
+      if (!decay) throw new Error("没有排布音量衰减（包络完全没调度）");
+      if (!stop) throw new Error("没有排布振荡器停止");
+      // 链长 = 0.5 + 4 = 4.5 拍；tempo=60 → 4.5 秒。停止时刻还要留 0.04 秒的余量，
+      // 免得包络还没走完就被掐断（听感上是一个爆音）。
+      const wantStop = 100 + 4.5 + 0.04;
+      const wantDecay = 100 + 4.5 - 0.04;
+      if (Math.abs(stop[1] - wantStop) > 0.02)
+        throw new Error(
+          `振荡器停止时刻不对：应为 ${wantStop}s，实际 ${stop[1]}s —— 链长没算进去`,
+        );
+      if (decay[1] < 100 + 1)
+        throw new Error(
+          `音量衰减排得太早：${decay[1]}s（起音在 100s），长音会在自己那一格结束时就哑掉`,
+        );
+      if (Math.abs(decay[1] - wantDecay) > 0.02)
+        throw new Error(`衰减起点应为 ${wantDecay}s，实际 ${decay[1]}s`);
+    } finally {
+      stopPlay();
+      window.AudioContext = RealCtx;
+      window.webkitAudioContext = RealCtx;
+      score.tempo = backup.tempo;
+      score.events = backup.events;
+      applyScoreToForm();
+      render();
+    }
+    return `tempo=60 时「0.5 拍 + 延音线 + 4 拍」的链：衰减与停止都排在 4.5 秒处`;
   });
 
   await step("lyric-enter-advance", async () => {
