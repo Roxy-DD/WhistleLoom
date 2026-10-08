@@ -109,12 +109,11 @@
     const clone = paper.cloneNode(true);
     clone.querySelectorAll(".score-toolbar, #fitScore").forEach((n) => n.remove());
     clone.querySelectorAll(".selected, .playing, .active").forEach((n) => n.classList.remove("selected", "playing", "active"));
-    // 导出纸张比编辑器被侧栏挤窄的栏宽宽得多，必须按纸张宽度重新折行。
-    // 直接搬编辑器的分行结果，会让每一行只装得下一个小节：谱子既浪费纸张，
-    // 又因为小节居中在整行里而显得左右空荡、整体偏向一侧。
-    const view = clone.querySelector("#scoreView");
-    if (view && typeof layoutScoreInto === "function")
-      layoutScoreInto(view, contentWidth, score, { stretch: true });
+    // ★ 这里**不做布局**。布局要重新折行，而连线覆盖层是按符头/唱名的真实像素
+    // 位置量出来的 —— cloneNode 刚出来的节点还游离在文档外，量什么都是 0，
+    // renderConnections 会一条线都不画（见下面 staging 的说明）。
+    // 所以布局连同画线一起挪到 staging 里：插进文档 → 布局 → 画线，三步原子完成。
+    clone.dataset.contentWidth = String(contentWidth);
     const heading = clone.querySelector(".paper-heading");
     if (heading && score) {
       const doc = heading.ownerDocument;
@@ -190,10 +189,30 @@
     clone.querySelector("#scoreView")?.style.setProperty("zoom", "1");
     return clone;
   }
-  function staging(clone) {
+  // 把 clone 暂存到屏幕外（left:-12000px），**并且在这里完成谱面布局与连线绘制**。
+  //
+  // 为什么布局必须在这里做：曲谱要按导出纸张的宽度重新折行，而延音线 / 连奏线是
+  // renderConnections 用 getBoundingClientRect() 量出符头与唱名的真实像素位置后，
+  // 再画的一层绝对定位 svg。cloneNode 出来的节点游离在文档之外，getBoundingClientRect
+  // 一律返回 0，量出来的每一行都是「宽 0 高 0」，renderConnections 内部
+  // `if (!width || !height) continue` 直接跳过 —— **一条线都不画，而且不报错**。
+  //
+  // 这就是「屏幕上有延音线、打印也有，唯独 PNG / PDF 导出没有」的原因：打印路径
+  // 操作的是页面上真实的 #scoreView（一直连着文档），导出路径操作的是这个克隆体。
+  // 修法是把顺序钉死：先 append 进文档 → 再布局 → 再画线。
+  function staging(clone, score) {
     const host = document.createElement("div");
     host.style.cssText = `position:fixed;left:-12000px;top:0;width:${EXPORT_PAGE_WIDTH}px;z-index:-1;background:white`;
-    host.append(clone); document.body.append(host); return host;
+    host.append(clone); document.body.append(host);
+    const view = clone.querySelector("#scoreView");
+    if (view && score && typeof layoutScoreInto === "function") {
+      const contentWidth = Number(clone.dataset.contentWidth) || EXPORT_CONTENT_WIDTH;
+      // 节点此刻已连上文档，layoutScoreInto 会在重建之后把连线画好，返回值是曲线条数。
+      const drawn = layoutScoreInto(view, contentWidth, score, { stretch: true });
+      // 兜底再补一次。不做静默容忍 —— 位图里少几条线比导出失败更隐蔽，宁可多画一遍。
+      if (!drawn) renderConnections(view, score.events);
+    }
+    return host;
   }
   function requireVisibleLayer(paper) {
     const selectors = [".staff-layer", ".numbers-layer", ".lyrics-layer", ".holes-layer"];
@@ -361,11 +380,11 @@
   async function rasterize(element, scale = 2) {
     const width = Math.ceil(element.scrollWidth || element.getBoundingClientRect().width);
     const height = Math.ceil(element.scrollHeight || element.getBoundingClientRect().height);
-    if (!width || !height || width * height * scale * scale > 120_000_000) throw new Error(tr("曲谱太长，超出浏览器单张画布的安全尺寸；请用普通打印按纸张分页输出。"));
+    if (!width || !height || width * height * scale * scale > 120_000_000) throw new Error(tr("曲谱太长，超出浏览器单张画布的安全尺寸；请改用可逆 PDF 导出。"));
     const canvas = document.createElement("canvas");
     canvas.width = width * scale; canvas.height = height * scale;
     const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error(tr("浏览器无法创建导出画布，请使用普通打印输出。"));
+    if (!ctx) throw new Error(tr("浏览器无法创建导出画布，导出失败。"));
     ctx.fillStyle = "#fffefa"; ctx.fillRect(0, 0, canvas.width, canvas.height);
     const rootRect = element.getBoundingClientRect();
     // 基准变换只做「乘比例」。谱面是暂存在屏幕外（left:-12000px）再光栅化的，
@@ -390,7 +409,7 @@
   }
   async function exportPng(paper, score) {
     requireVisibleLayer(paper);
-    const clone = cleanClone(paper, score), host = staging(clone);
+    const clone = cleanClone(paper, score), host = staging(clone, score);
     try { const canvas = await rasterize(clone, 2); download(`${safeName(score.title)}.png`, await pngWithScore(await toBlob(canvas, "image/png"), score)); }
     finally { host.remove(); }
   }
@@ -464,7 +483,7 @@
   }
   async function exportPdf(paper, score) {
     requireVisibleLayer(paper);
-    const source = cleanClone(paper, score), host = staging(source);
+    const source = cleanClone(paper, score), host = staging(source, score);
     try {
       if (!source.querySelector(".score-system")) throw new Error(tr("曲谱还没有音符，无法导出。"));
       // 整份曲谱（谱头 + 全部谱行）就是这一页，不再拆成多张 A4。
@@ -473,9 +492,21 @@
       const pageWidth = PDF_LONG_PAGE_WIDTH,
         pageHeight = pageWidth * (image.height / image.width);
       if (pageHeight > PDF_MAX_PAGE_HEIGHT)
-        throw new Error(tr("曲谱太长，超出 PDF 单页尺寸上限；请改用 PNG 导出或普通打印分页输出。"));
+        throw new Error(tr("曲谱太长，超出 PDF 单页尺寸上限；请改用 PNG 导出。"));
       download(`${safeName(score.title)}.pdf`, pdfBytes(image, score, pageWidth, pageHeight));
     } finally { host.remove(); }
   }
-  window.ScoreExport = { exportPdf, exportPng, scoreFromPdf, scoreFromPng, embedScoreInPng: pngWithScore };
+  // cleanClone + staging 也一并挂出去：导出的前两步（重建谱面 → 暂存到屏幕外）
+  // 是「PNG 导出丢延音线」这个 bug 的所在，而它们是 IIFE 私有的，浏览器探针够不着。
+  // 挂出来之后探针能直接跑真实导出路径并断言连线条数，不必在探针里复刻一遍逻辑
+  // —— 复刻出来的逻辑一旦和真代码漂移，测试就会「因为错误的原因通过」。
+  window.ScoreExport = {
+    exportPdf,
+    exportPng,
+    scoreFromPdf,
+    scoreFromPng,
+    embedScoreInPng: pngWithScore,
+    cleanClone,
+    staging,
+  };
 })();

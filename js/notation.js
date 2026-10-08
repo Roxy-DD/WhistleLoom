@@ -1,4 +1,4 @@
-// 一个音符在谱面上占的横向步长。编辑器用基础值即可；导出 / 打印会用同一批音符
+// 一个音符在谱面上占的横向步长。编辑器用基础值即可；导出会用同一批音符
 // 把这个步长整体撑大，让每行的左右边缘都顶到纸面宽度（制谱上的「横向撑满」）。
 const NOTE_CELL = 52;
 // 撑开的幅度上限。撑得太多音符之间会空旷到读不出节奏分组，制谱惯例大约到 1.5 倍为止。
@@ -331,7 +331,16 @@ function eventCellAccess(e, i) {
     }) + (e.lyric ? tr("，歌词 ") + e.lyric : "");
   return `tabindex="${i === selected || (selected < 0 && i === 0) ? 0 : -1}" role="button" aria-label="${escapeHtml(label)}" aria-pressed="${i === selected}"`;
 }
-function renderConnections(view) {
+// 把延音线 / 连奏线画成覆盖层。
+//
+// 它必须知道**是哪份曲谱**，不能去读 app.js 的那个全局 score —— 导出与打印渲染的
+// 未必是当前正在编辑的那一份（导出走 cleanClone，传进来的就是待导出的那份）。
+// 早先写死 score.events，等于把「渲染层」和「编辑器当前状态」又绑回一起。
+//
+// 返回画出的曲线条数。调用方（导出）要靠它判断这一步到底有没有生效 ——
+// 元素还没进文档时 getBoundingClientRect 全是 0，早先的写法会静默 continue、
+// 一条线都不画也不报错，于是导出的图里「延音线凭空消失」而没有任何提示。
+function renderConnections(view, events = score.events) {
   const scale = view.clientWidth ? view.getBoundingClientRect().width / view.clientWidth : 1;
   const systems = [...view.querySelectorAll(".score-system")];
   const systemByEvent = new Map();
@@ -339,7 +348,11 @@ function renderConnections(view) {
     for (const cell of system.querySelectorAll(".numbers-layer .event-cell"))
       systemByEvent.set(cell.dataset.index, systemIndex);
   });
+  let drawn = 0;
   for (const [systemIndex, system] of systems.entries()) {
+    // 先清掉上一轮画的线：render() 会被反复调用（改歌词、切图层、缩放），
+    // 不清就会一层叠一层，旧线的位置还停在旧的折行结果上。
+    system.querySelectorAll(":scope > .connection-overlay").forEach((n) => n.remove());
     const systemRect = system.getBoundingClientRect();
     const width = Math.ceil(system.scrollWidth), height = Math.ceil(system.scrollHeight);
     if (!width || !height) continue;
@@ -350,8 +363,8 @@ function renderConnections(view) {
     overlay.setAttribute("viewBox", `0 0 ${width} ${height}`);
     const noteHeads = new Map([...system.querySelectorAll(".staff-layer .score-note .notehead")].map((head) => [head.closest(".score-note").dataset.index, head]));
     const numberNotes = new Map([...system.querySelectorAll(".numbers-layer .event-cell .number-value")].map((label) => [label.closest(".event-cell").dataset.index, label]));
-    for (let index = 0; index + 1 < score.events.length; index++) {
-      const event = score.events[index], next = score.events[index + 1];
+    for (let index = 0; index + 1 < events.length; index++) {
+      const event = events[index], next = events[index + 1];
       const type = event.tieToNext && event.pitch === next.pitch
         ? "tie"
         : event.slurToNext ? "slur" : "";
@@ -382,6 +395,7 @@ function renderConnections(view) {
         path.setAttribute("class", cssClass);
         path.setAttribute("d", `M${x1.toFixed(1)} ${y1.toFixed(1)} Q${((x1 + x2) / 2).toFixed(1)} ${peak.toFixed(1)} ${x2.toFixed(1)} ${y2.toFixed(1)}`);
         overlay.append(path);
+        drawn += 1;
       };
       const startKey = String(index), endKey = String(index + 1);
       const startSystem = systemByEvent.get(startKey), endSystem = systemByEvent.get(endKey);
@@ -398,6 +412,7 @@ function renderConnections(view) {
     }
     if (overlay.childNodes.length) system.append(overlay);
   }
+  return drawn;
 }
 function staffLayoutForSystem(system) {
   const needsArc = system.some(({ bar }) => bar.some(({ e }) => e.tieToNext || e.slurToNext));
