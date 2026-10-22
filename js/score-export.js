@@ -220,6 +220,9 @@
       throw new Error(tr("请先在右侧开启至少一个谱面图层，再导出。"));
     }
   }
+  function requireScoreEvents(score) {
+    if (!score?.events?.length) throw new Error(tr("曲谱还没有音符，无法导出。"));
+  }
   function drawInlineSvg(ctx, svg, rootRect, scale) {
     const alpha = (value, fallback = 1) => {
       const parsed = Number.parseFloat(value);
@@ -403,15 +406,162 @@
     drawExportDecorations(ctx, element, rootRect);
     return canvas;
   }
+  async function pageCanvas(page, score) {
+    const host = stagePage(page, score);
+    try { return await rasterize(page, EXPORT_PIXEL_RATIO); }
+    finally { host.remove(); }
+  }
   function toBlob(canvas, type, quality) { return new Promise((resolve, reject) => canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error(tr("生成图像失败"))), type, quality)); }
   function download(name, blob) {
     const url = URL.createObjectURL(blob), a = document.createElement("a"); a.href = url; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1500);
   }
-  async function exportPng(paper, score) {
+  async function exportPng(paper, score, options = {}) {
+    requireScoreEvents(score);
     requireVisibleLayer(paper);
-    const clone = cleanClone(paper, score), host = staging(clone, score);
+    const settings = ScoreLayout.normalize(options);
+    const pxPerMm = 96 / 25.4;
+    const paperWidthPx = settings.widthMm * pxPerMm;
+    const marginPx = settings.marginMm * pxPerMm;
+    const contentWidth = paperWidthPx - marginPx * 2;
+    const bars = barsOf(score);
+    const measuredRows = systemRows(bars, 100000, { measuresPerRow: settings.measuresPerRow, strictMeasures: true });
+    const layoutWidth = Math.max(1004, ...measuredRows.map((row) => row.width));
+    const contentScale = contentWidth / layoutWidth;
+    const rows = measuredRows.map((row) => row.items.map(({ bar }) => bar));
+    const clone = cleanClone(paper, score, 1004);
+    const content = clone.querySelector("#scoreView");
+    content.innerHTML = pageMarkup(rows, layoutWidth, settings.measuresPerRow);
+    clone.style.setProperty("width", `${paperWidthPx}px`, "important");
+    clone.style.setProperty("padding", `${marginPx}px`, "important");
+    clone.style.setProperty("height", "auto", "important");
+    content.style.transform = `scale(${contentScale})`;
+    content.style.transformOrigin = "top left";
+    content.style.setProperty("width", `${layoutWidth}px`, "important");
+    const host = document.createElement("div");
+    host.style.cssText = `position:fixed;left:-12000px;top:0;width:${paperWidthPx}px;z-index:-1;background:white`;
+    host.append(clone); document.body.append(host);
+    renderConnections(content, score.events);
+    // Include the scaled score body in the long image's height.
+    const rowsBottom = [...content.querySelectorAll(".score-system")].reduce((bottom, row) => Math.max(bottom, row.offsetTop + row.offsetHeight), 0);
+    content.style.height = `${rowsBottom * contentScale}px`;
     try { const canvas = await rasterize(clone, 2); download(`${safeName(score.title)}.png`, await pngWithScore(await toBlob(canvas, "image/png"), score)); }
     finally { host.remove(); }
+  }
+  function barsOf(score) { return regroup(score.events, score.meter); }
+  function pageMarkup(bars, width, measuresPerRow) {
+    return scoreSystemsMarkup(bars.flat(), width, { stretch: true, measuresPerRow, strictMeasures: true });
+  }
+  function makePage(paper, score, bars, settings, pageIndex, total) {
+    const clone = cleanClone(paper, score, 1004);
+    const content = clone.querySelector("#scoreView");
+    const pxPerMm = 96 / 25.4;
+    const paperWidthPx = settings.widthMm * pxPerMm;
+    const paperHeightPx = settings.heightMm * pxPerMm;
+    const marginPx = settings.marginMm * pxPerMm;
+    const contentWidth = paperWidthPx - marginPx * 2;
+    const flatBars = bars.flat();
+    const measuredRows = systemRows(flatBars, 100000, { measuresPerRow: settings.measuresPerRow, strictMeasures: true });
+    const layoutWidth = Math.max(1004, ...measuredRows.map((row) => row.width));
+    const contentScale = contentWidth / layoutWidth;
+    content.innerHTML = pageMarkup(bars, layoutWidth, settings.measuresPerRow);
+    const heading = clone.querySelector(".export-heading");
+    if (pageIndex > 0) heading?.remove();
+    clone.style.boxSizing = "border-box";
+    clone.style.setProperty("width", `${paperWidthPx}px`, "important");
+    clone.style.setProperty("height", `${paperHeightPx}px`, "important");
+    clone.style.setProperty("padding", `${marginPx}px`, "important");
+    clone.style.transform = "none";
+    clone.style.transformOrigin = "top left";
+    clone.dataset.pageIndex = String(pageIndex);
+    clone.dataset.pageCount = String(total);
+    clone.dataset.contentWidth = "1004";
+    content.style.transform = `scale(${contentScale})`;
+    content.style.transformOrigin = "top left";
+    content.style.setProperty("width", `${layoutWidth}px`, "important");
+    content.style.height = `${(settings.heightMm - settings.marginMm * 2) * pxPerMm / contentScale}px`;
+    const pageLabel = document.createElement("div");
+    pageLabel.className = "export-page-number";
+    pageLabel.textContent = `${pageIndex + 1} / ${total}`;
+    clone.append(pageLabel);
+    return clone;
+  }
+  function makePages(paper, score, options = {}) {
+    const settings = ScoreLayout.normalize(options);
+    const bars = barsOf(score);
+    const pxPerMm = 96 / 25.4;
+    const paperWidthPx = settings.widthMm * pxPerMm;
+    const paperHeightPx = settings.heightMm * pxPerMm;
+    const marginPx = settings.marginMm * pxPerMm;
+    const contentWidth = paperWidthPx - marginPx * 2;
+    const measuredRows = systemRows(bars, 100000, { measuresPerRow: settings.measuresPerRow, strictMeasures: true });
+    const allRows = measuredRows.map((row) => row.items.map(({ bar }) => bar));
+    const layoutWidth = Math.max(1004, ...measuredRows.map((row) => row.width));
+    const contentScale = contentWidth / layoutWidth;
+    // Measure the actual rendered system rows at their final export scale. Lyrics, staff
+    // position and fingering can all change row height, so a fixed estimate can clip pages.
+    const probe = cleanClone(paper, score, 1004);
+    const probeView = probe.querySelector("#scoreView");
+    probeView.innerHTML = pageMarkup(allRows, layoutWidth, settings.measuresPerRow);
+    probeView.style.transform = `scale(${contentScale})`;
+    probeView.style.transformOrigin = "top left";
+    probeView.style.setProperty("width", `${layoutWidth}px`, "important");
+    const probeHost = document.createElement("div");
+    probeHost.style.cssText = `position:fixed;left:-12000px;top:0;width:${paperWidthPx}px;z-index:-1;background:white`;
+    probeHost.append(probe); document.body.append(probeHost);
+    let groups;
+    try {
+      const systems = [...probeView.querySelectorAll(".score-system")];
+      const top = systems.map((node) => node.getBoundingClientRect().top);
+      const heights = systems.map((node) => node.getBoundingClientRect().height);
+      const contentTop = probe.getBoundingClientRect().top + marginPx;
+      const firstPagePrefix = systems.length ? systems[0].getBoundingClientRect().top - contentTop : 0;
+      const pageCapacity = paperHeightPx - marginPx * 2 - 28;
+      groups = [];
+      let group = [], used = firstPagePrefix;
+      systems.forEach((_, index) => {
+        const rowHeight = heights[index] + (index + 1 < systems.length ? Math.max(0, top[index + 1] - top[index] - heights[index]) : 0);
+        if (group.length && used + rowHeight > pageCapacity) {
+          groups.push(group); group = []; used = 0;
+        }
+        group.push(allRows[index]);
+        used += rowHeight;
+      });
+      if (group.length || !groups.length) groups.push(group);
+    } finally { probeHost.remove(); }
+    return groups.map((page, index) => {
+      return makePage(paper, score, page, settings, index, groups.length);
+    });
+  }
+  function stagePage(page, score) {
+    const host = document.createElement("div");
+    host.style.cssText = "position:fixed;left:-12000px;top:0;z-index:-1;background:white";
+    host.style.width = `${page.getBoundingClientRect().width}px`;
+    host.append(page); document.body.append(host);
+    renderConnections(page.querySelector("#scoreView"), score.events);
+    return host;
+  }
+  async function pageBlob(page, score) {
+    return await pngWithScore(await toBlob(await pageCanvas(page, score), "image/png"), score);
+  }
+  function renderPreviewPage(paper, score, options = {}, pageIndex = 0) {
+    const pages = makePages(paper, score, options), index = Math.max(0, Math.min(pages.length - 1, pageIndex));
+    return { page: pages[index], index, total: pages.length };
+  }
+  async function exportCurrentPagePng(paper, score, options = {}, pageIndex = 0) {
+    requireScoreEvents(score); requireVisibleLayer(paper); const pages = makePages(paper, score, options), index = Math.max(0, Math.min(pages.length - 1, pageIndex));
+    download(`${safeName(score.title)}-${index + 1}.png`, await pageBlob(pages[index], score));
+  }
+  async function exportPngZip(paper, score, options = {}) {
+    requireScoreEvents(score); requireVisibleLayer(paper); const pages = makePages(paper, score, options), files = [];
+    for (let i = 0; i < pages.length; i++) files.push({ name: `page-${String(i + 1).padStart(3, "0")}.png`, data: new Uint8Array(await (await pageBlob(pages[i], score)).arrayBuffer()) });
+    files.push({ name: "score.json", data: encoder.encode(JSON.stringify({ app: MARKER, score, layout: ScoreLayout.normalize(options) })) });
+    download(`${safeName(score.title)}-pages.zip`, new Blob([ScoreZip.pack(files)], { type: "application/zip" }));
+  }
+  async function scoreFromPngZip(input) {
+    const files = await ScoreZip.unpack(input), manifest = files.find((file) => file.name.toLowerCase() === "score.json");
+    if (manifest) try { const envelope = JSON.parse(new TextDecoder().decode(manifest.data)); if (envelope.app === MARKER && envelope.score) return importJson(envelope.score); } catch (_) { /* Recover from PNG metadata below. */ }
+    for (const file of files.filter((item) => item.name.toLowerCase().endsWith(".png"))) try { return await scoreFromPng(new Blob([file.data], { type: "image/png" })); } catch (_) { /* Try next page. */ }
+    throw new Error(tr("这个 ZIP 中没有找到可还原的曲谱数据。"));
   }
   function safeName(name) { return String(name || tr("曲谱")).replace(/[\\/:*?"<>|]/g, "_").slice(0, 80); }
   function pdfTextHex(value) {
@@ -451,7 +601,7 @@
   }
   // 把整张位图铺满一页「长页」。页宽固定（842pt，等同 A4 横向），页高由位图长宽比
   // 决定，所以谱子多长页面就多长，不会在小节中间断开。
-  function pdfBytes(image, score, pageWidth, pageHeight) {
+  function pdfBytes(images, score, pageWidth, pageHeight) {
     const objects = [];
     const add = (value) => { objects.push(value); return objects.length; };
     // 产品标识写进 PDF 的 /Creator，整串在语言表里是一条键。
@@ -459,19 +609,17 @@
     const embedded = encoder.encode(JSON.stringify({ app: MARKER, score }));
     const embedId = add(concat(bytes(`<< /Type /EmbeddedFile /Subtype /application#2Fjson /Length ${embedded.length} >>\nstream\n`), embedded, bytes("\nendstream")));
     const fileId = add(bytes(`<< /Type /Filespec /F (score.json) /UF (score.json) /EF << /F ${embedId} 0 R >> /AFRelationship /Data >>`));
-    const imageId = add(concat(
-      bytes(`<< /Type /XObject /Subtype /Image /Width ${image.width} /Height ${image.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter ${image.filter} /Length ${image.data.length} >>\nstream\n`),
-      image.data,
-      bytes("\nendstream"),
-    ));
-    // 位图 1:1 铺满整页：变换矩阵直接把画布像素映射到页面尺寸，不做留白居中。
-    const content = bytes(`q\n${pageWidth.toFixed(3)} 0 0 ${pageHeight.toFixed(3)} 0 0 cm\n/Im0 Do\nQ\n`);
-    const contentId = add(concat(bytes(`<< /Length ${content.length} >>\nstream\n`), content, bytes("endstream")));
     // 先占号再回填：/Pages 的 Kids 要指向 /Page，而 /Page 的 Parent 要指向 /Pages，
     // 两个对象互相引用，所以先按顺序占住编号，加完 /Page 再把 /Pages 补全。
     const pagesId = add(bytes(""));
-    const pageId = add(bytes(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${pageWidth.toFixed(3)} ${pageHeight.toFixed(3)}] /Resources << /XObject << /Im0 ${imageId} 0 R >> >> /Contents ${contentId} 0 R >>`));
-    objects[pagesId - 1] = bytes(`<< /Type /Pages /Kids [${pageId} 0 R] /Count 1 >>`);
+    const pageObjects = images.map((image, index) => {
+      const imageId = add(concat(bytes(`<< /Type /XObject /Subtype /Image /Width ${image.width} /Height ${image.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter ${image.filter} /Length ${image.data.length} >>\nstream\n`), image.data, bytes("\nendstream")));
+      const content = bytes(`q\n${pageWidth.toFixed(3)} 0 0 ${pageHeight.toFixed(3)} 0 0 cm\n/Im${index} Do\nQ\n`);
+      const contentId = add(concat(bytes(`<< /Length ${content.length} >>\nstream\n`), content, bytes("endstream")));
+      return { imageId, contentId };
+    });
+    const pageIds = pageObjects.map(({ imageId, contentId }, index) => add(bytes(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${pageWidth.toFixed(3)} ${pageHeight.toFixed(3)}] /Resources << /XObject << /Im${index} ${imageId} 0 R >> >> /Contents ${contentId} 0 R >>`)));
+    objects[pagesId - 1] = bytes(`<< /Type /Pages /Kids [${pageIds.map((id) => `${id} 0 R`).join(" ")}] /Count ${pageIds.length} >>`);
     const catalogId = add(bytes(`<< /Type /Catalog /Pages ${pagesId} 0 R /Names << /EmbeddedFiles << /Names [(score.json) ${fileId} 0 R] >> >> /AF [${fileId} 0 R] >>`));
     const infoId = add(bytes(`<< /Title <${pdfTextHex(score.title)}> /Creator <${pdfTextHex(creator)}> >>`));
     const parts = [bytes("%PDF-1.7\n%âãÏÓ\n")], offsets = [0]; let offset = parts[0].length;
@@ -481,20 +629,14 @@
     parts.push(bytes(table + `trailer\n<< /Size ${objects.length + 1} /Root ${catalogId} 0 R /Info ${infoId} 0 R >>\nstartxref\n${xref}\n%%EOF`));
     return new Blob(parts, { type: "application/pdf" });
   }
-  async function exportPdf(paper, score) {
+  async function exportPdf(paper, score, options = {}) {
+    requireScoreEvents(score);
     requireVisibleLayer(paper);
-    const source = cleanClone(paper, score), host = staging(source, score);
-    try {
-      if (!source.querySelector(".score-system")) throw new Error(tr("曲谱还没有音符，无法导出。"));
-      // 整份曲谱（谱头 + 全部谱行）就是这一页，不再拆成多张 A4。
-      const canvas = await rasterize(source, EXPORT_PIXEL_RATIO);
-      const image = await encodePdfImage(canvas);
-      const pageWidth = PDF_LONG_PAGE_WIDTH,
-        pageHeight = pageWidth * (image.height / image.width);
-      if (pageHeight > PDF_MAX_PAGE_HEIGHT)
-        throw new Error(tr("曲谱太长，超出 PDF 单页尺寸上限；请改用 PNG 导出。"));
-      download(`${safeName(score.title)}.pdf`, pdfBytes(image, score, pageWidth, pageHeight));
-    } finally { host.remove(); }
+    const pages = makePages(paper, score, options), settings = ScoreLayout.normalize(options);
+    const ptPerMm = 72 / 25.4, pageWidth = settings.widthMm * ptPerMm, pageHeight = settings.heightMm * ptPerMm;
+    const images = [];
+    for (const page of pages) images.push(await encodePdfImage(await pageCanvas(page, score)));
+    download(`${safeName(score.title)}.pdf`, pdfBytes(images, score, pageWidth, pageHeight));
   }
   // cleanClone + staging 也一并挂出去：导出的前两步（重建谱面 → 暂存到屏幕外）
   // 是「PNG 导出丢延音线」这个 bug 的所在，而它们是 IIFE 私有的，浏览器探针够不着。
@@ -503,8 +645,14 @@
   window.ScoreExport = {
     exportPdf,
     exportPng,
+    exportCurrentPagePng,
+    exportPngZip,
+    makePages,
+    renderPreviewPage,
     scoreFromPdf,
     scoreFromPng,
+    scoreFromPngZip,
+    pdfBytes,
     embedScoreInPng: pngWithScore,
     cleanClone,
     staging,

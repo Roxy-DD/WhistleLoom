@@ -90,7 +90,7 @@
 /* ── 导入 / 导出面板（#ioDialog）────────────────────────────────────────────
    同一个 <dialog> 装两个页签：导入和导出。导入那张表要放「格式 · 后缀 · 说明」三列，
    所以面板比单纯导出时宽一些。 */
-.io-dialog { width: min(620px, calc(100vw - 32px)); }
+.io-dialog { width: min(1040px, calc(100vw - 32px)); max-height: min(92vh, 1000px); overflow: auto; }
 .io-dialog p, .io-dialog small { margin: 0; }
 .io-tabs {
   display: inline-flex;
@@ -118,6 +118,27 @@
 }
 .io-pane { padding-top: 14px; }
 .io-pane[hidden] { display: none; }
+.export-layout-controls { display: grid; grid-template-columns: 1fr 1fr 2fr 1fr; gap: 10px; margin-top: 14px; align-items: end; }
+.export-layout-controls label { display: grid; gap: 5px; color: var(--muted); font-size: 11px; }
+.export-layout-controls select, .export-layout-controls input:not([type=range]) { min-width: 0; width: 100%; height: 34px; padding: 5px 8px; border: 1px solid var(--line); border-radius: 7px; background: white; color: var(--ink); }
+.export-range { grid-template-columns: 1fr auto; }
+.export-range span { grid-column: 1 / -1; }
+.export-range input { width: 100%; }
+.export-range output { color: var(--ink); font-weight: 600; }
+.export-preview-shell { margin-top: 12px; padding: 10px; border: 1px solid var(--line); border-radius: 10px; background: #e9e8e1; }
+.export-preview-toolbar { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin-bottom: 9px; }
+.export-preview-toolbar button { min-height: 30px; border: 1px solid var(--line); border-radius: 6px; background: white; padding: 4px 9px; color: var(--ink); font-size: 11px; }
+.export-preview { height: min(52vh, 560px); overflow: auto; display: flex; justify-content: center; align-items: flex-start; }
+.export-preview .preview-sheet { position: relative; flex: none; overflow: hidden; background: #fffefa; box-shadow: 0 2px 12px #20272028; transform-origin: top left; }
+.export-preview .preview-frame { position: relative; flex: none; }
+.export-preview .preview-sheet > .export-paper { position: absolute; inset: 0; }
+.export-paper .export-heading { padding-top: 0; }
+.export-page-number { position: absolute; bottom: 16px; left: 0; right: 0; text-align: center; color: #657066; font-size: 10px; }
+.export-card-actions { display: flex; gap: 6px; margin-top: 5px; }
+.export-card-actions button { min-height: 26px; padding: 3px 7px; border: 1px solid var(--line); border-radius: 6px; background: #f8f7f2; color: var(--ink); font-size: 10px; }
+.export-preview .preview-score { overflow: hidden; }
+.export-options { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 760px) { .export-layout-controls { grid-template-columns: 1fr 1fr; } .export-options { grid-template-columns: 1fr; } }
 .io-note { margin-top: 12px !important; font-size: 12px; }
 
 /* 拖放区。它同时也是「选择文件」按钮的容器 —— 两条路放在一处，用户不用先分辨
@@ -178,18 +199,16 @@ body.is-dropping::after {
 /* 导出卡片：一个格式一张。左对齐而不是居中 —— 大字标签加一行说明，居中的话
    说明文字会换行换得参差不齐。 */
 .export-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
+  display: grid;
+  gap: 4px;
   padding: 11px 14px;
   border: 1px solid #daddd3;
   border-radius: 10px;
   background: white;
-  text-align: left;
   transition: .16s;
 }
-.export-card:hover { border-color: #9cad98; transform: translateY(-1px); }
+.export-card:hover { border-color: #9cad98; }
+.export-main { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; padding: 0; border: 0; background: transparent; color: var(--ink); text-align: left; cursor: pointer; }
 .export-card b { font-size: 14px; }
 .export-card small { color: var(--muted); font-size: 11px; line-height: 1.5; }
 .export-layers-message { margin-top: 14px !important; }

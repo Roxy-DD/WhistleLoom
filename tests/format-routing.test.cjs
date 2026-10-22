@@ -26,6 +26,7 @@ const context = vm.createContext({
   File,
   console,
   window: {},
+  ScoreExport: { scoreFromPngZip: async () => ({ events: [] }) },
 });
 const prelude = `
 const pcSharp = ["C","C♯","D","D♯","E","F","F♯","G","G♯","A","A♯","B"];
@@ -80,14 +81,14 @@ test("能导入的格式必须声明怎么读文件，否则分流时会读成 u
 test("导出卡片上的说明与「无损可还原」的标注只出现一次，且只在真正无损的格式上", () => {
   const reversible = api.SCORE_FORMATS.filter((item) => item.reversible).map((item) => item.id);
   // 跨 realm 的数组不能用 deepStrictEqual 比（原型不同），拼成字符串再比。
-  assert.equal(reversible.join(","), "json,pdf,png");
+  assert.equal(reversible.join(","), "json,pdf,png,zip");
 });
 
 test("文件选择框的 accept 由登记表生成，且没有重复后缀", () => {
   const accept = api.importAcceptAttribute();
   const list = accept.split(",");
   assert.equal(new Set(list).size, list.length, "accept 里有重复后缀");
-  for (const extension of [".abc", ".musicxml", ".mxl", ".mid", ".json", ".pdf", ".png"])
+  for (const extension of [".abc", ".musicxml", ".mxl", ".mid", ".json", ".pdf", ".png", ".zip"])
     assert.ok(list.includes(extension), `accept 里少了 ${extension}`);
 });
 
@@ -191,6 +192,14 @@ test("没有后缀的文件靠内容也能分流", () => {
   );
   assert.equal(api.formatForFile("", '{"events":[]}').id, "json");
   assert.equal(api.formatForFile("", "既不是谱也不是数据"), null);
+});
+
+test(".zip 文件交给可逆曲谱包导入器，而 .mxl 仍走 MusicXML", async () => {
+  const archive = Uint8Array.from([0x50, 0x4b, 3, 4, 0, 0]);
+  const parsed = await api.importScoreFromFile(fileOf(archive, "pages.zip", "application/zip"));
+  assert.ok(Array.isArray(parsed.events));
+  assert.equal(api.formatForExtension("pages.zip").id, "zip");
+  assert.equal(api.formatForExtension("score.mxl").id, "musicxml");
 });
 
 // ── 文本面板的粘贴通道 ─────────────────────────────────────────────────────

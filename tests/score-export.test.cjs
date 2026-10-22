@@ -13,6 +13,10 @@ const scoreImport = fs.readFileSync(
   "utf8",
 );
 const window = {};
+const scoreLayout = fs.readFileSync(path.join(__dirname, "../js/score-layout.js"), "utf8");
+const zip = fs.readFileSync(path.join(__dirname, "../js/zip.js"), "utf8");
+window.ScoreLayout = vm.runInNewContext(`${scoreLayout}; window.ScoreLayout`, { window: {} });
+window.ScoreZip = vm.runInNewContext(`${zip}; window.ScoreZip`, { window: {}, TextEncoder, TextDecoder, Uint8Array, DataView, Blob, Response, DecompressionStream });
 vm.runInNewContext(source, {
   window,
   TextEncoder,
@@ -22,6 +26,38 @@ vm.runInNewContext(source, {
   Blob,
   URL,
   setTimeout,
+  ScoreLayout: window.ScoreLayout,
+  ScoreZip: window.ScoreZip,
+  tr: (text) => text,
+  importJson: (score) => score,
+});
+
+test("multi-page PDF writes a page tree with the requested physical page size", async () => {
+  const image = { width: 100, height: 120, filter: "/DCTDecode", data: new Uint8Array([1, 2, 3]) };
+  const blob = window.ScoreExport.pdfBytes([image, image], { title: "two pages", events: [] }, 595.276, 841.89);
+  const pdf = new TextDecoder().decode(await blob.arrayBuffer());
+  assert.match(pdf, /\/Count 2/);
+  assert.equal((pdf.match(/\/Type \/Page\b/g) || []).length, 2);
+  assert.equal((pdf.match(/\/MediaBox \[0 0 595\.276 841\.890\]/g) || []).length, 2);
+  assert.equal((await window.ScoreExport.scoreFromPdf(blob)).title, "two pages");
+  const legacyLongPage = window.ScoreExport.pdfBytes([image], { title: "legacy long page", events: [] }, 842, 2400);
+  assert.equal((await window.ScoreExport.scoreFromPdf(legacyLongPage)).title, "legacy long page");
+});
+
+test("PNG ZIP manifest restores the full score, and invalid manifest falls back to page metadata", async () => {
+  const score = { schemaVersion: 1, title: "ZIP round trip", events: [{ pitch: 62, duration: 1 }] };
+  const good = window.ScoreZip.pack([{ name: "score.json", data: new TextEncoder().encode(JSON.stringify({ app: "score-studio/1", score })) }]);
+  assert.equal((await window.ScoreExport.scoreFromPngZip(good)).title, score.title);
+
+  const signature = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  const header = new Uint8Array(12);
+  header.set(new TextEncoder().encode("IHDR"), 4);
+  const png = await window.ScoreExport.embedScoreInPng(new Blob([signature, header]), score);
+  const fallback = window.ScoreZip.pack([
+    { name: "score.json", data: new TextEncoder().encode("not json") },
+    { name: "page-001.png", data: new Uint8Array(await png.arrayBuffer()) },
+  ]);
+  assert.equal((await window.ScoreExport.scoreFromPngZip(fallback)).title, score.title);
 });
 
 test("Sí Bheag Sí Mhór example imports to the same pitches as its project score", () => {

@@ -184,12 +184,16 @@ function renderExportCards() {
   if (!box) return;
   box.innerHTML = "";
   for (const format of SCORE_FORMATS.filter((item) => item.export)) {
-    const card = document.createElement("button");
-    card.type = "button";
+    const card = document.createElement("div");
     card.className = "export-card";
-    card.dataset.format = format.id;
-    card.innerHTML =
-      `<b>${escapeHtml(tr(format.label))}</b><small>${escapeHtml(tr(format.hint))}</small>`;
+    const label = escapeHtml(tr(format.label));
+    const hint = escapeHtml(tr(format.hint));
+    card.innerHTML = `<button class="export-main" type="button" data-format="${format.id}"><b>${label}</b><small>${hint}</small></button>`;
+    if (format.id === "png") {
+      const longLabel = escapeHtml(tr("下载整曲长图"));
+      const zipLabel = escapeHtml(tr("下载分页 ZIP"));
+      card.innerHTML += `<span class="export-card-actions"><button type="button" data-export-kind="png-long">${longLabel}</button><button type="button" data-export-kind="png-zip">${zipLabel}</button></span>`;
+    }
     box.append(card);
   }
 }
@@ -1162,22 +1166,84 @@ function wire() {
     showIoTab("export");
     updateExportLayersMessage();
     $("ioDialog").showModal();
+    updateExportPreview();
   });
   // 文件选择框能选哪些后缀，同样来自登记表。
   $("openFile").accept = importAcceptAttribute();
   // 导入格式表与导出卡片都由登记表生成（重建函数在模块层，切语言时 applyLanguage 也走它）。
   renderImportFormatList();
   renderExportCards();
+  let exportPageIndex = 0;
+  function exportLayoutOptions() {
+    return {
+      paperSize: $("exportPaperSize").value,
+      orientation: $("exportOrientation").value,
+      measuresPerRow: Number($("exportMeasuresPerRow").value),
+      marginMm: Number($("exportMargin").value),
+    };
+  }
+  function updateExportPreview() {
+    if (!$("exportPreview")) return;
+    const options = exportLayoutOptions();
+    $("exportMeasuresReadout").value = String(options.measuresPerRow);
+    const preview = ScoreExport.renderPreviewPage(document.querySelector(".score-paper"), structuredClone(score), options, exportPageIndex);
+    exportPageIndex = preview.index;
+    const box = $("exportPreview");
+    const pxPerMm = 96 / 25.4;
+    const width = ScoreLayout.normalize(options).widthMm * pxPerMm;
+    const height = ScoreLayout.normalize(options).heightMm * pxPerMm;
+    const scale = Math.min((box.clientWidth - 16) / width, (box.clientHeight - 16) / height, 1);
+    const frame = document.createElement("div");
+    frame.className = "preview-frame";
+    frame.style.width = `${width * scale}px`;
+    frame.style.height = `${height * scale}px`;
+    const sheet = document.createElement("div");
+    sheet.className = "preview-sheet";
+    sheet.style.width = `${width}px`;
+    sheet.style.height = `${height}px`;
+    sheet.style.transform = `scale(${scale})`;
+    sheet.style.transformOrigin = "top left";
+    sheet.style.width = `${width}px`;
+    sheet.style.height = `${height}px`;
+    preview.page.style.position = "absolute";
+    preview.page.style.inset = "0";
+    preview.page.style.transform = "none";
+    preview.page.style.margin = "0";
+    sheet.append(preview.page);
+    frame.append(sheet);
+    box.replaceChildren(frame);
+    renderConnections(preview.page.querySelector("#scoreView"), score.events);
+    $("exportPageReadout").textContent = tr("第 {page} / {total} 页", { page: preview.index + 1, total: preview.total });
+    $("exportPrevPage").disabled = preview.index <= 0;
+    $("exportNextPage").disabled = preview.index >= preview.total - 1;
+  }
+  for (const id of ["exportPaperSize", "exportOrientation", "exportMeasuresPerRow", "exportMargin"])
+    $(id).addEventListener("input", () => { exportPageIndex = 0; updateExportPreview(); });
+  $("exportPrevPage").addEventListener("click", () => { exportPageIndex--; updateExportPreview(); });
+  $("exportNextPage").addEventListener("click", () => { exportPageIndex++; updateExportPreview(); });
+  $("exportDownloadPage").addEventListener("click", async () => {
+    try { await ScoreExport.exportCurrentPagePng(document.querySelector(".score-paper"), structuredClone(score), exportLayoutOptions(), exportPageIndex); }
+    catch (error) { $("exportStatus").textContent = error.message || tr("导出失败。"); }
+  });
+  $("ioDialog").addEventListener("close", () => {
+    if ($("ioDialog").returnValue === "export") updateExportPreview();
+  });
   $("exportOptions").addEventListener("click", async (event) => {
-    const card = event.target.closest(".export-card");
-    if (!card) return;
-    const id = card.dataset.format,
+    const action = event.target.closest("[data-export-kind]");
+    const main = event.target.closest(".export-main");
+    const card = (action || main)?.closest(".export-card");
+    if (!card || (!action && !main)) return;
+    const button = action || main;
+    const id = main?.dataset.format || "png",
       status = $("exportStatus");
-    card.disabled = true;
+    button.disabled = true;
     status.textContent = tr("正在排版并生成文件…");
     try {
       const message = await exportScoreWith(id, structuredClone(score), {
         paper: document.querySelector(".score-paper"),
+        layout: exportLayoutOptions(),
+        pageIndex: exportPageIndex,
+        kind: action?.dataset.exportKind || (id === "png" ? "png-page" : undefined),
       });
       status.textContent = message
         ? message +
@@ -1188,7 +1254,7 @@ function wire() {
     } catch (error) {
       status.textContent = error.message || tr("导出失败。");
     } finally {
-      card.disabled = false;
+      button.disabled = false;
     }
   });
 

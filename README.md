@@ -45,8 +45,9 @@
 | MusicXML | `.musicxml` `.xml` `.mxl` | 是 | 是 | 记谱软件互通标准，MuseScore / Sibelius / Finale / Dorico 可直接打开 |
 | MIDI | `.mid` `.midi` | 是 | 是 | 只保留音高与节奏，歌词会丢失 |
 | WhistleLoom 工程文件 | `.json` | 是 | 是 | 无损 |
-| 可逆 PDF | `.pdf` | 是 | 是 | 整曲单页长谱面，曲谱数据嵌入文件，导入可还原 |
-| 可逆 PNG | `.png` | 是 | 是 | 整曲长图，同样嵌入可还原的数据 |
+| 可逆 PDF | `.pdf` | 是 | 是 | 按纸张和方向分页，完整曲谱数据嵌入文件，导入可还原 |
+| 可逆 PNG | `.png` | 是 | 是 | 当前页、分页 ZIP 或整曲长图，均嵌入可还原数据 |
+| 可逆分页 PNG ZIP | `.zip` | 是 | 是 | 包含分页 PNG 与曲谱清单，可直接导入还原 |
 
 文件可以拖放到页面任意位置，也可以通过「选择文件…」导入。
 
@@ -56,7 +57,7 @@
 
 导出按右侧当前开启的图层排版，面板中会列出本次导出包含的图层。
 
-标为「可逆」的三种格式（JSON / PDF / PNG）嵌入完整曲谱数据，导入后可原样还原并继续编辑。
+标为「可逆」的格式（JSON / PDF / PNG / 分页 PNG ZIP）嵌入完整曲谱数据，导入后可原样还原并继续编辑。PDF 使用标准纸张分页；导出面板可设置 A4 / Letter、方向、每行小节数和页边距，并实时翻页预览。PNG 可下载当前页、导出长图或打包全部分页；ZIP 可以直接导入。
 
 ### 公共曲库
 
@@ -132,7 +133,9 @@ node scripts/check-i18n.mjs
 | `js/abc.js` | ABC 子集解析与生成 |
 | `js/musicxml.js` | MusicXML 导入导出（含 `.mxl` 解压）与一份极简 XML 解析器 |
 | `js/midi.js` | 标准 MIDI 文件导入导出 |
-| `js/score-export.js` | PDF / PNG 渲染、嵌入可逆数据与重新导入 |
+| `js/score-export.js` | PDF / PNG 分页渲染、嵌入可逆数据与重新导入 |
+| `js/score-layout.js` | 导出纸张尺寸、方向和分页配置 |
+| `js/zip.js` | 离线 PNG 批量 ZIP 读写 |
 | `js/formats.js` | 格式登记表与文件分流（魔数与内容嗅探、后缀兜底、`accept` 列表、统一调度） |
 | `js/tune-source.js` | 公共曲库接入层：检索 thesession.org、离线兜底、将曲库谱例拼为 ABC |
 | `js/tune-library.js` | 内置离线曲库（由脚本生成，不要手改） |

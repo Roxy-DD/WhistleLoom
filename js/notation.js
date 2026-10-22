@@ -488,8 +488,10 @@ function systemRows(bars, contentWidth, options = {}) {
     used = 0;
   };
   bars.forEach((bar, index) => {
+    const target = Number(options.measuresPerRow);
+    if (row.length && Number.isInteger(target) && target > 0 && row.length >= target) flush();
     const baseW = measureWidth(barSlots(bar), NOTE_CELL, row.length === 0);
-    if (row.length && used + 16 + baseW > contentWidth) flush();
+    if (row.length && options.strictMeasures !== true && used + 16 + baseW > contentWidth) flush();
     // 每行的第一个小节额外容纳谱头，否则首小节会被谱头挤出可视宽度。
     const placed = measureWidth(barSlots(bar), NOTE_CELL, row.length === 0);
     row.push({ bar, index });

@@ -222,8 +222,8 @@ export function runChecks(repoRoot = DEFAULT_ROOT) {
 
   const reversible = api.SCORE_FORMATS.filter((f) => f.reversible).map((f) => f.id).join(", ");
   ok(
-    "导入路径 · 可无损还原的只有 json / pdf / png",
-    reversible === "json, pdf, png",
+    "导入路径 · 可无损还原的只有 json / pdf / png / zip",
+    reversible === "json, pdf, png, zip",
     `实际是 ${reversible || "（无）"}`,
   );
 

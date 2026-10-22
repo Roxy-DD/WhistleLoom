@@ -1,6 +1,6 @@
 # Getting music into WhistleLoom
 
-The editor imports and exports seven things, driven by one registry (`js/formats.js`). Read
+The editor imports and exports seven formats, driven by one registry (`js/formats.js`). Read
 this before telling a user "that format isn't supported" — the answer is usually one of
 these routes.
 
@@ -14,7 +14,7 @@ these routes.
 | **WhistleLoom project** | `.json` | ✔ | ✔ | None — this is the editor's own file. Reversible. |
 | **Reversible PDF** | `.pdf` | ✔ | ✔ | None. The score data is embedded in the file, so importing it back gives the original. |
 | **Reversible PNG** | `.png` | ✔ | ✔ | None, same trick. |
-| **Print** | — | ✘ | ✔ | Browser pagination; paper only. |
+| **Reversible paginated PNG ZIP** | `.zip` | ✔ | ✔ | Includes every page and embedded score data; ZIP can be imported directly. |
 
 The seven formats are also the source for the file-picker's `accept` list, the drag-and-drop
 routing and the labels on the export panel — adding a format is a one-entry change in
@@ -27,8 +27,8 @@ bug: routing by extension alone sent a MusicXML file to the ABC parser, and the 
 does not refuse — it chewed the XML tags into 255 garbage notes. The file *looked* like a
 score. So:
 
-1. **Magic bytes.** `%PDF` → PDF, `\x89PNG` → PNG, `PK\x03\x04` → a zip (used by `.mxl`;
-   the MusicXML reader decides whether to unpack), `MThd` → MIDI.
+1. **Magic bytes.** `%PDF` → PDF, `\x89PNG` → PNG, `PK\x03\x04` → a ZIP container, `MThd` → MIDI.
+   `.mxl` ZIPs go to MusicXML; `.zip` files go to the reversible paginated-score package reader.
 2. **Text sniffing** on the decoded bytes: a `<score-partwise>`/`<score-timewise>` root →
    MusicXML, a line starting `X:`/`T:`/`K:` → ABC, parseable JSON containing an `events`
    array → a WhistleLoom project.

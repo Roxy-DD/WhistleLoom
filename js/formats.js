@@ -84,26 +84,39 @@ const SCORE_FORMATS = [
   {
     id: "pdf",
     label: "可逆 PDF",
-    hint: "整曲排成一页长谱面，并把曲谱数据嵌进文件里；导入即可还原继续编辑",
+    hint: "按纸张分页，并把完整曲谱数据嵌入文件；导入即可还原继续编辑",
     extensions: [".pdf"],
     read: "file",
     reversible: true,
     import: ({ file }) => ScoreExport.scoreFromPdf(file),
-    export: async (source, { paper }) => {
-      await ScoreExport.exportPdf(paper, source);
+    export: async (source, { paper, layout }) => {
+      await ScoreExport.exportPdf(paper, source, layout);
     },
   },
   {
     id: "png",
     label: "可逆 PNG",
-    hint: "整曲长图，同样把曲谱数据嵌进文件里；导入即可还原继续编辑",
+    hint: "可导出当前页、整曲长图或分页 ZIP；均保留可还原数据",
     extensions: [".png"],
     read: "file",
     reversible: true,
     import: ({ file }) => ScoreExport.scoreFromPng(file),
-    export: async (source, { paper }) => {
-      await ScoreExport.exportPng(paper, source);
+    export: async (source, { paper, layout, kind, pageIndex }) => {
+      if (kind === "png-page") await ScoreExport.exportCurrentPagePng(paper, source, layout, pageIndex);
+      else if (kind === "png-zip") await ScoreExport.exportPngZip(paper, source, layout);
+      else if (kind === "png-long") await ScoreExport.exportPng(paper, source, layout);
+      else await ScoreExport.exportCurrentPagePng(paper, source, layout, pageIndex);
     },
+  },
+  {
+    id: "zip",
+    label: "可逆分页 PNG ZIP",
+    hint: "打包所有分页图片和曲谱数据；可直接导入 ZIP 还原",
+    extensions: [".zip"],
+    read: "bytes",
+    reversible: true,
+    import: ({ bytes }) => ScoreExport.scoreFromPngZip(bytes),
+    export: async (source, { paper, layout }) => ScoreExport.exportPngZip(paper, source, layout),
   },
 ];
 
@@ -140,7 +153,7 @@ function formatForExtension(name) {
 const BINARY_SIGNATURES = [
   { magic: [0x25, 0x50, 0x44, 0x46], id: "pdf" }, // %PDF
   { magic: [0x89, 0x50, 0x4e, 0x47], id: "png" }, // \x89PNG
-  { magic: [0x50, 0x4b, 0x03, 0x04], id: "musicxml" }, // PK\x03\x04 → 打包成 zip 的 .mxl
+  { magic: [0x50, 0x4b, 0x03, 0x04], id: "musicxml" }, // MXL uses ZIP; .zip packages are routed by suffix
   { magic: [0x4d, 0x54, 0x68, 0x64], id: "midi" }, // MThd
 ];
 function formatForBytes(bytes) {
@@ -168,6 +181,7 @@ function formatForFile(name, text) {
       // 不是 JSON，继续往下试。
     }
   }
+  if (extensionOf(name) === ".mxl") return formatById("musicxml");
   return null;
 }
 // 打开一个文件，返回曲谱。
@@ -179,6 +193,12 @@ function formatForFile(name, text) {
 // 魔数、先嗅内容；内容认不出来时，才退回后缀对应的解析器（这时它该报错就报错）。
 async function importScoreFromFile(file) {
   const bytes = new Uint8Array(await file.arrayBuffer());
+  if (extensionOf(file.name) === ".zip")
+    return await formatById("zip").import({ file, name: file.name, bytes });
+  if (bytes[0] === 0x50 && bytes[1] === 0x4b && extensionOf(file.name) !== ".zip")
+    return await formatById("musicxml").import({ file, name: file.name, bytes });
+  if (bytes[0] === 0x50 && bytes[1] === 0x4b)
+    return await formatById("zip").import({ file, name: file.name, bytes });
   const format =
     formatForContent(bytes) || formatForExtension(file.name);
   if (!format) throw new Error(unknownFormatMessage(file.name));

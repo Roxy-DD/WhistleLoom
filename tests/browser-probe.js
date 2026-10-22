@@ -58,6 +58,31 @@
 
   await step("ui-import-list", () => document.querySelectorAll("#importFormatList tr").length + " 行格式说明");
   await step("ui-export-cards", () => document.querySelectorAll("#exportOptions .export-card").length + " 张导出卡");
+  await step("export-preview-controls", () => {
+    const ids = ["exportPaperSize", "exportOrientation", "exportMeasuresPerRow", "exportMargin", "exportPreview", "exportPrevPage", "exportNextPage", "exportDownloadPage"];
+    const missing = ids.filter((id) => !document.getElementById(id));
+    if (missing.length) throw new Error("缺少预览控件: " + missing.join(","));
+    document.getElementById("openExport").click();
+    const page = document.querySelector("#exportPreview .export-paper");
+    const measures = page?.querySelectorAll("#scoreView .measure").length || 0;
+    const portrait = page?.getBoundingClientRect();
+    const rowControl = document.getElementById("exportMeasuresPerRow");
+    rowControl.value = "4";
+    rowControl.dispatchEvent(new Event("input", { bubbles: true }));
+    const forcedRowCount = document.querySelector("#exportPreview .score-system")?.querySelectorAll(":scope > .measure").length || 0;
+    document.getElementById("exportOrientation").value = "landscape";
+    document.getElementById("exportOrientation").dispatchEvent(new Event("input", { bubbles: true }));
+    const landscape = document.querySelector("#exportPreview .export-paper")?.getBoundingClientRect();
+    rowControl.value = "2";
+    rowControl.dispatchEvent(new Event("input", { bubbles: true }));
+    document.getElementById("exportOrientation").value = "portrait";
+    document.getElementById("exportOrientation").dispatchEvent(new Event("input", { bubbles: true }));
+    document.getElementById("ioDialog").close();
+    if (!page || !measures) throw new Error("打开导出面板后没有显示谱面预览");
+    if (forcedRowCount !== 4) throw new Error(`每行小节滑块没有生效：${forcedRowCount}`);
+    if (!(landscape.width > portrait.width && landscape.height < portrait.height)) throw new Error("纸张方向没有改变预览比例");
+    return `预览包含 ${measures} 个小节，纸张/方向/页边距和翻页控件均已接线`;
+  });
   await step("ui-accept", () => document.getElementById("openFile").accept);
   await step("ui-text-formats", () => [...document.getElementById("textFormat").options].map((o) => o.value).join(","));
 

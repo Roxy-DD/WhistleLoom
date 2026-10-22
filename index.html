@@ -712,12 +712,17 @@
         aria-labelledby="ioTabExport"
         hidden
       >
-        <p data-i18n>
-          导出会按右侧当前开启的图层排版，并显示标题、调式、拍号、速度和曲谱署名。
-          PDF 与 PNG 按同一张「完整长页」输出：整首曲子排在一页里，谱行左右两端顶到版心
-          边缘，不会在小节中间断开。标着「可逆」的格式会把曲谱数据嵌进文件，之后可以
-          通过导入还原并继续编辑。
-        </p>
+        <p data-i18n>PDF 与分页 PNG 可按纸张预览并分页；PNG 也可导出整曲长图或打包全部分页。所有这些文件都保留可导入还原的曲谱数据。</p>
+        <div class="export-layout-controls">
+          <label><span data-i18n>纸张</span><select id="exportPaperSize"><option value="A4">A4</option><option value="Letter">Letter</option></select></label>
+          <label><span data-i18n>方向</span><select id="exportOrientation"><option value="portrait" data-i18n>纵向</option><option value="landscape" data-i18n>横向</option></select></label>
+          <label class="export-range"><span data-i18n>每行小节数</span><input id="exportMeasuresPerRow" type="range" min="1" max="8" value="2"><output id="exportMeasuresReadout">2</output></label>
+          <label><span data-i18n>页边距（毫米）</span><input id="exportMargin" type="number" min="5" max="30" value="12"></label>
+        </div>
+        <div class="export-preview-shell">
+          <div class="export-preview-toolbar"><button id="exportPrevPage" type="button" data-i18n>上一页</button><span id="exportPageReadout" aria-live="polite"></span><button id="exportNextPage" type="button" data-i18n>下一页</button><button id="exportDownloadPage" type="button" data-i18n>下载当前页 PNG</button></div>
+          <div id="exportPreview" class="export-preview" aria-label="分页预览" data-i18n-attrs="aria-label"></div>
+        </div>
         <div class="export-options" id="exportOptions"></div>
         <small id="exportLayersMessage" class="export-layers-message"></small>
         <span id="exportStatus" role="status" aria-live="polite"></span>
@@ -746,9 +751,11 @@
     <script src="js/abc.js"></script>
     <script src="js/musicxml.js"></script>
     <script src="js/midi.js"></script>
-    <script src="js/score-export.js"></script>
-    <!-- 格式登记表要放在所有编解码器之后：它在顶层就把各格式的处理函数登记进表里。 -->
+    <script src="js/score-layout.js"></script>
+    <script src="js/zip.js"></script>
+    <!-- 格式登记表在导出器前注册导入函数；ScoreExport 在用户交互时才会被调用。 -->
     <script src="js/formats.js"></script>
+    <script src="js/score-export.js"></script>
     <!-- 曲库接入层要在 abc.js 之后：它复用 abc.js 的 fracSuffix / abcModeOf / ABC_MODE_SUFFIX。 -->
     <script src="js/tune-source.js"></script>
     <!-- 离线曲库是纯数据，由 scripts/build-tune-library.mjs 生成，正式打开前先加载。 -->

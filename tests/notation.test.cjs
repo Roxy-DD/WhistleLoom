@@ -214,6 +214,11 @@ test("折行按内容宽度打包，首小节预留谱头宽度", () => {
   );
 });
 
+test("每行小节数选项覆盖自然宽度折行", () => {
+  const rows = context.systemRows(barsOf(4, 7), 1004, { measuresPerRow: 2 });
+  assert.deepEqual(Array.from(rows, (row) => row.items.length), [2, 2, 2, 1]);
+});
+
 test("撑满让每行正好铺满内容宽度，且不超过 1.5 倍上限", () => {
   // 音符够多，撑得开：步长按比例放大到刚好铺满。
   const cell = context.stretchedCell([4, 4], 560, true);
