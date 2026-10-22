@@ -10,6 +10,7 @@ on:
     # for the release commit already runs this workflow.
     branches: ["**"]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
